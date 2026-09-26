@@ -1,6 +1,7 @@
 /**
  * MDEsq - Main Application Controller
  * High-performance, zero-dependency ES Module
+ * Light Executive Theme & Interactive Chart Visualizers
  */
 
 import { JURISDICTIONS, FEDERAL_REGULATIONS } from './data/statutes.js';
@@ -18,6 +19,7 @@ const state = {
   apiKey: (typeof localStorage !== 'undefined' && localStorage.getItem('mdesq_gemini_key')) || '',
   currentMockDepIndex: 0,
   selectedMockOption: null,
+  fmvChart: null,
   chatHistory: []
 };
 
@@ -151,17 +153,11 @@ export const RISK_QUESTIONS = [
 export function sanitizePHI(rawText) {
   if (!rawText) return '';
   return rawText
-    // Scrub Medical Record Numbers (MRN)
     .replace(/\b(MRN|mrn|ID|id|record\s*#?)\s*[:#]?\s*\d{4,12}\b/gi, '[MRN-REDACTED]')
-    // Scrub Social Security Numbers
     .replace(/\b\d{3}[-]?\d{2}[-]?\d{4}\b/g, '[SSN-REDACTED]')
-    // Scrub Phone Numbers
     .replace(/\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, '[PHONE-REDACTED]')
-    // Scrub Email Addresses
     .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL-REDACTED]')
-    // Scrub specific dates of service (replace with generalized format)
     .replace(/\b\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4}\b/g, '[DATE-REDACTED]')
-    // Scrub specific patient name patterns (e.g., "Patient John Doe", "Mr. Smith")
     .replace(/\b(Patient|pt|Mr\.|Ms\.|Mrs\.)\s+([A-Z][a-z]+)(\s+[A-Z][a-z]+)?\b/g, '[PATIENT-NAME-REDACTED]');
 }
 
@@ -172,7 +168,7 @@ export function calculateFMVMetrics(specialtyId, baseSalary, targetWrvus, convFa
   const totalEstimatedComp = Math.max(baseSalary, calculatedProductionComp);
 
   let fmvStatus = 'standard';
-  let statusTitle = 'Standard FMV Range';
+  let statusTitle = 'Standard FMV Corridor';
   let statusClass = 'emerald';
   let statusDesc = '';
 
@@ -180,7 +176,7 @@ export function calculateFMVMetrics(specialtyId, baseSalary, targetWrvus, convFa
     fmvStatus = 'undercompensated';
     statusTitle = 'Below 25th Percentile (Severe Undercompensation)';
     statusClass = 'amber';
-    statusDesc = `Your compensation package ($${totalEstimatedComp.toLocaleString()}) is below the 25th national percentile for ${spec.name} ($${spec.compP25.toLocaleString()}). You have substantial leverage to negotiate a higher base salary or increased $/wRVU conversion rate.`;
+    statusDesc = `Your compensation package ($${totalEstimatedComp.toLocaleString()}) is below the 25th national percentile for ${spec.name} ($${spec.compP25.toLocaleString()}). You have strong leverage to negotiate a higher base salary or increased $/wRVU conversion rate.`;
   } else if (totalEstimatedComp <= spec.compP75) {
     fmvStatus = 'standard';
     statusTitle = 'Safe FMV Corridor (25th–75th Percentile)';
@@ -258,10 +254,9 @@ export function calculateMVIScore(answers) {
   };
 }
 
-// Initialization & DOM Binding
+// DOM Binding
 if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Lucide icons
     if (typeof window !== 'undefined' && window.lucide) {
       window.lucide.createIcons();
     }
@@ -287,19 +282,23 @@ function initNavigation() {
       const targetTabId = tab.getAttribute('data-tab');
       state.currentTab = targetTabId;
 
-      // Update tab styles
+      // Update tab styles for Light Mode
       tabs.forEach(t => {
-        t.classList.remove('active-tab', 'text-brand-400', 'bg-brand-500/10', 'border-brand-500/20');
-        t.classList.add('text-slate-400');
+        t.classList.remove('active-tab', 'text-emerald-700', 'bg-emerald-50', 'border-emerald-200');
+        t.classList.add('text-slate-600');
       });
-      tab.classList.add('active-tab', 'text-brand-400', 'bg-brand-500/10', 'border-brand-500/20');
-      tab.classList.remove('text-slate-400');
+      tab.classList.add('active-tab', 'text-emerald-700', 'bg-emerald-50', 'border-emerald-200');
+      tab.classList.remove('text-slate-600');
 
       // Show target panel
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
       const targetPanel = document.getElementById(targetTabId);
       if (targetPanel) {
         targetPanel.classList.remove('hidden');
+      }
+
+      if (targetTabId === 'tab-fmv-contracts') {
+        setTimeout(updateFMVChart, 50);
       }
 
       if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
@@ -328,7 +327,6 @@ function updateJurisdictionContext() {
     ncTag.textContent = jur.nonCompeteStatus.substring(0, 32);
   }
 
-  // Refresh statutes list
   renderStatutes();
 }
 
@@ -346,16 +344,16 @@ function renderCardinalRules() {
   if (!container) return;
 
   container.innerHTML = DEPOSITION_CARDINAL_RULES.map(r => `
-    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 hover:border-emerald-500/30 transition">
+    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 hover:border-emerald-300 transition shadow-xs">
       <div class="flex items-center space-x-2.5">
-        <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold font-mono">
+        <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold font-mono">
           ${r.num}
         </span>
-        <h4 class="text-xs font-bold text-white">${r.title}</h4>
+        <h4 class="text-xs font-bold text-slate-900">${r.title}</h4>
       </div>
-      <p class="text-xs text-slate-300 leading-relaxed">${r.summary}</p>
-      <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-850 text-xs text-emerald-300/90 font-medium">
-        <span class="font-bold text-white block text-[11px] mb-0.5">Execution Rule:</span>
+      <p class="text-xs text-slate-600 leading-relaxed">${r.summary}</p>
+      <div class="p-2.5 rounded-xl bg-white border border-slate-200 text-xs text-emerald-800 font-semibold shadow-xs">
+        <span class="font-bold text-slate-900 block text-[11px] mb-0.5">Execution Rule:</span>
         "${r.rule}"
       </div>
     </div>
@@ -367,23 +365,23 @@ function renderReptileTraps() {
   if (!container) return;
 
   container.innerHTML = REPTILE_THEORY_COUNTERMEASURES.map((trap, idx) => `
-    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
+    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
-          <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Plaintiff Trap #${idx + 1}
+        <span class="text-xs font-bold text-rose-700 flex items-center gap-1.5">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-600"></i> Plaintiff Trap #${idx + 1}
         </span>
-        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Reptile Theory</span>
+        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono font-semibold">Reptile Theory</span>
       </div>
-      <blockquote class="text-xs italic text-slate-200 bg-slate-950 p-2.5 rounded-xl border-l-2 border-rose-500">
+      <blockquote class="text-xs italic text-slate-800 bg-white p-2.5 rounded-xl border-l-3 border-rose-500 shadow-xs">
         "${trap.plaintiffTrap}"
       </blockquote>
       <div class="space-y-1.5 text-xs">
-        <div class="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300">
-          <strong class="text-rose-400 block text-[11px]">❌ Dangerous Concession:</strong>
+        <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800">
+          <strong class="text-rose-900 block text-[11px]">❌ Dangerous Concession:</strong>
           "${trap.flawedAnswer}"
         </div>
-        <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
-          <strong class="text-emerald-400 block text-[11px]">🛡️ Master Defense Response:</strong>
+        <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
+          <strong class="text-emerald-900 block text-[11px]">🛡️ Master Defense Response:</strong>
           "${trap.masterDefenseResponse}"
         </div>
       </div>
@@ -399,30 +397,30 @@ function renderMockDeposition() {
   if (!scen) return;
 
   container.innerHTML = `
-    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
+    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
       <div class="flex items-center justify-between">
-        <span class="text-[11px] font-bold text-brand-400 uppercase tracking-wider">${scen.specialty}</span>
+        <span class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">${scen.specialty}</span>
         <div class="flex space-x-1">
-          <button id="btn-prev-scen" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 ${state.currentMockDepIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''}">Prev</button>
-          <button id="btn-next-scen" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 ${state.currentMockDepIndex === MOCK_DEPOSITION_SCENARIOS.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}">Next</button>
+          <button id="btn-prev-scen" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700 ${state.currentMockDepIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''}">Prev</button>
+          <button id="btn-next-scen" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700 ${state.currentMockDepIndex === MOCK_DEPOSITION_SCENARIOS.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}">Next</button>
         </div>
       </div>
-      <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
-        <strong class="text-white block mb-1">Clinical Case Context:</strong>
+      <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 shadow-xs">
+        <strong class="text-slate-900 block mb-1">Clinical Case Context:</strong>
         ${scen.context}
       </div>
-      <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200">
-        <strong class="text-rose-400 block mb-1">Plaintiff Attorney Cross-Examination Question:</strong>
+      <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
+        <strong class="text-rose-900 block mb-1">Plaintiff Attorney Cross-Examination Question:</strong>
         "${scen.question}"
       </div>
-      <div class="space-y-2 pt-2">
-        <span class="text-xs font-bold text-slate-300 block">Select Your Sworn Deposition Response:</span>
+      <div class="space-y-2 pt-1">
+        <span class="text-xs font-bold text-slate-800 block">Select Your Sworn Deposition Response:</span>
         ${scen.options.map((opt, optIdx) => `
-          <button class="mock-dep-opt w-full text-left p-3 rounded-xl border border-slate-800 hover:border-brand-500/40 bg-slate-950 hover:bg-slate-900 text-xs text-slate-200 transition space-y-1 block" data-opt-idx="${optIdx}">
+          <button class="mock-dep-opt w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-emerald-500 bg-white hover:bg-emerald-50/40 text-xs text-slate-800 transition space-y-1 block shadow-xs" data-opt-idx="${optIdx}">
             <div class="flex items-center justify-between">
-              <span class="font-bold text-white">Option ${String.fromCharCode(65 + optIdx)}</span>
+              <span class="font-bold text-slate-900">Option ${String.fromCharCode(65 + optIdx)}</span>
             </div>
-            <p class="text-slate-300">${opt.text}</p>
+            <p class="text-slate-700 leading-relaxed">${opt.text}</p>
           </button>
         `).join('')}
       </div>
@@ -430,7 +428,6 @@ function renderMockDeposition() {
     </div>
   `;
 
-  // Attach scenario navigation
   document.getElementById('btn-prev-scen')?.addEventListener('click', () => {
     if (state.currentMockDepIndex > 0) {
       state.currentMockDepIndex--;
@@ -445,7 +442,6 @@ function renderMockDeposition() {
     }
   });
 
-  // Attach option clicks
   document.querySelectorAll('.mock-dep-opt').forEach(btn => {
     btn.addEventListener('click', () => {
       const optIdx = parseInt(btn.getAttribute('data-opt-idx'), 10);
@@ -463,91 +459,28 @@ function showMockFeedback(scen, optIdx) {
   const isMaster = opt.grade.startsWith('A');
 
   if (isMaster) {
-    box.className = 'p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200 space-y-1.5';
+    box.className = 'p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 space-y-1.5 shadow-xs';
     box.innerHTML = `
       <div class="flex items-center justify-between">
-        <strong class="text-emerald-400 font-bold text-sm">Grade: ${opt.grade} • ${opt.rating}</strong>
-        <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">Trial Ready</span>
+        <strong class="text-emerald-800 font-bold text-sm">Grade: ${opt.grade} • ${opt.rating}</strong>
+        <span class="text-[10px] px-2.5 py-0.5 rounded bg-emerald-200 text-emerald-900 font-mono font-bold">Trial Ready</span>
       </div>
-      <p class="text-slate-200 leading-relaxed">${opt.analysis}</p>
+      <p class="text-slate-700 leading-relaxed">${opt.analysis}</p>
     `;
   } else {
-    box.className = 'p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-200 space-y-1.5';
+    box.className = 'p-4 rounded-2xl bg-rose-50 border border-rose-300 text-xs text-rose-900 space-y-1.5 shadow-xs';
     box.innerHTML = `
       <div class="flex items-center justify-between">
-        <strong class="text-rose-400 font-bold text-sm">Grade: ${opt.grade} • ${opt.rating}</strong>
-        <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono">Severe Vulnerability</span>
+        <strong class="text-rose-800 font-bold text-sm">Grade: ${opt.grade} • ${opt.rating}</strong>
+        <span class="text-[10px] px-2.5 py-0.5 rounded bg-rose-200 text-rose-900 font-mono font-bold">Severe Exposure</span>
       </div>
-      <p class="text-slate-200 leading-relaxed">${opt.analysis}</p>
+      <p class="text-slate-700 leading-relaxed">${opt.analysis}</p>
     `;
   }
 }
 
 // ==========================================
-// 2. PEER REVIEW & SUSPENSION SHIELD
-// ==========================================
-function initPeerReviewShield() {
-  const container = document.getElementById('peer-review-content-container');
-  if (!container) return;
-
-  container.innerHTML = PEER_REVIEW_DEFENSE_GUIDE.map(item => `
-    <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 flex flex-col justify-between">
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-blue-400 font-mono font-bold">${item.urgency}</span>
-        </div>
-        <h3 class="text-sm font-bold text-white">${item.topic}</h3>
-        <span class="text-[11px] text-slate-400 block font-mono">${item.statutoryBasis}</span>
-        <ul class="space-y-2 pt-2 text-xs text-slate-300">
-          ${item.protocol.map(p => `
-            <li class="flex items-start gap-2">
-              <span class="text-blue-400 font-bold">•</span>
-              <span class="leading-relaxed">${p}</span>
-            </li>
-          `).join('')}
-        </ul>
-      </div>
-    </div>
-  `).join('');
-}
-
-// ==========================================
-// 3. MALPRACTICE LITIGATION ROADMAP
-// ==========================================
-function initMalpracticeLitigation() {
-  const stagesContainer = document.getElementById('malpractice-stages-container');
-  if (stagesContainer) {
-    stagesContainer.innerHTML = MALPRACTICE_LITIGATION_STAGES.map(s => `
-      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 hover:border-purple-500/30 transition">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-white flex items-center gap-2">
-            <span class="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs font-mono font-bold">${s.step}</span>
-            ${s.stage}
-          </span>
-          <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-purple-300 font-mono">${s.duration}</span>
-        </div>
-        <p class="text-xs text-slate-300 leading-relaxed">${s.description}</p>
-        <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-850 text-xs text-purple-200">
-          <strong class="text-white block text-[11px] mb-0.5">Physician Strategic Priority:</strong>
-          ${s.physicianAction}
-        </div>
-      </div>
-    `).join('');
-  }
-
-  const tacticsContainer = document.getElementById('insurance-tactics-container');
-  if (tacticsContainer) {
-    tacticsContainer.innerHTML = MALPRACTICE_INSURANCE_TACTICS.map(t => `
-      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
-        <h4 class="text-xs font-bold text-white">${t.topic}</h4>
-        <p class="text-xs text-slate-300 leading-relaxed">${t.analysis}</p>
-      </div>
-    `).join('');
-  }
-}
-
-// ==========================================
-// 4. FMV CALCULATOR SETUP
+// 2. FMV CALCULATOR & CHART.JS SETUP
 // ==========================================
 function initFMVCalculator() {
   const select = document.getElementById('fmv-specialty-select');
@@ -608,30 +541,99 @@ function updateFMVDisplay() {
   if (statusDesc) statusDesc.textContent = res.statusDesc;
   if (statusPill) {
     statusPill.textContent = res.statusTitle.split('(')[0].trim();
-    statusPill.className = `text-[10px] px-2.5 py-0.5 rounded-full font-semibold bg-${res.statusClass}-500/10 text-${res.statusClass}-400 border border-${res.statusClass}-500/20`;
+    statusPill.className = `text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-${res.statusClass}-100 text-${res.statusClass}-800 border border-${res.statusClass}-200`;
   }
+
+  updateFMVChart();
+}
+
+function updateFMVChart() {
+  if (typeof window === 'undefined' || typeof Chart === 'undefined') return;
+
+  const canvas = document.getElementById('fmvChart');
+  if (!canvas) return;
+
+  const spec = SPECIALTY_BENCHMARKS.find(s => s.id === state.selectedSpecialtyId) || SPECIALTY_BENCHMARKS[0];
+  const enteredComp = Math.max(
+    parseFloat(document.getElementById('input-base-salary')?.value || '0'),
+    parseFloat(document.getElementById('input-target-wrvus')?.value || '0') * parseFloat(document.getElementById('input-conv-factor')?.value || '0')
+  );
+
+  const labels = ['25th %ile', '50th (Median)', '75th %ile', '90th %ile', 'Your Package'];
+  const data = [spec.compP25 / 1000, spec.compP50 / 1000, spec.compP75 / 1000, spec.compP90 / 1000, enteredComp / 1000];
+
+  if (state.fmvChart) {
+    state.fmvChart.destroy();
+  }
+
+  const ctx = canvas.getContext('2d');
+  state.fmvChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Total Compensation ($k)',
+        data,
+        backgroundColor: [
+          '#cbd5e1',
+          '#059669',
+          '#64748b',
+          '#d97706',
+          '#0f172a'
+        ],
+        borderRadius: 8,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `$${ctx.parsed.y.toLocaleString()}k`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' },
+          ticks: {
+            callback: (v) => `$${v}k`,
+            font: { family: 'JetBrains Mono', size: 10 }
+          }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' } }
+        }
+      }
+    }
+  });
 }
 
 // ==========================================
-// 5. MEDICOLEGAL RISK AUDIT SETUP
+// 3. MEDICOLEGAL RISK AUDIT SETUP
 // ==========================================
 function initRiskAudit() {
   const container = document.getElementById('risk-questions-container');
   if (!container) return;
 
   container.innerHTML = RISK_QUESTIONS.map((q) => `
-    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3" id="card-${q.id}">
+    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3" id="card-${q.id}">
       <div class="flex items-center justify-between">
-        <h4 class="text-xs font-bold text-white flex items-center gap-2">
+        <h4 class="text-xs font-bold text-slate-900 flex items-center gap-2">
           ${q.title}
         </h4>
-        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">${q.statute}</span>
+        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono font-semibold">${q.statute}</span>
       </div>
-      <p class="text-xs text-slate-300">${q.question}</p>
+      <p class="text-xs text-slate-600">${q.question}</p>
       <div class="grid grid-cols-1 gap-2 pt-1">
         ${q.options.map((opt, optIndex) => `
-          <label class="flex items-start space-x-2.5 p-3 rounded-xl border border-slate-800 hover:bg-slate-800/60 cursor-pointer transition text-xs text-slate-300">
-            <input type="radio" name="${q.id}" value="${optIndex}" class="mt-0.5 text-brand-500 focus:ring-brand-500" ${state.auditAnswers[q.id] === optIndex ? 'checked' : ''}>
+          <label class="flex items-start space-x-2.5 p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-100/80 cursor-pointer transition text-xs text-slate-800 shadow-xs">
+            <input type="radio" name="${q.id}" value="${optIndex}" class="mt-0.5 text-emerald-600 focus:ring-emerald-500" ${state.auditAnswers[q.id] === optIndex ? 'checked' : ''}>
             <span class="leading-relaxed">${opt.text}</span>
           </label>
         `).join('')}
@@ -661,13 +663,13 @@ function updateRiskAuditResults() {
   const badge = document.getElementById('mvi-score-badge');
   if (badge) {
     badge.textContent = `MVI: ${res.score} / 100 (${res.tier.toUpperCase()})`;
-    badge.className = `px-4 py-1.5 rounded-xl bg-${res.badgeColor}-500/10 border border-${res.badgeColor}-500/30 text-${res.badgeColor}-400 font-mono font-bold text-sm`;
+    badge.className = `px-4 py-1.5 rounded-xl bg-${res.badgeColor}-50 border border-${res.badgeColor}-200 text-${res.badgeColor}-800 font-mono font-bold text-sm`;
   }
 
   const tierLabel = document.getElementById('mvi-tier-label');
   if (tierLabel) {
     tierLabel.textContent = res.tierLabel;
-    tierLabel.className = `text-xs font-semibold px-2.5 py-0.5 rounded-full bg-${res.badgeColor}-500/10 text-${res.badgeColor}-400 border border-${res.badgeColor}-500/20`;
+    tierLabel.className = `text-xs font-bold px-2.5 py-0.5 rounded-full bg-${res.badgeColor}-100 text-${res.badgeColor}-800 border border-${res.badgeColor}-200`;
   }
 
   const narrative = document.getElementById('mvi-tier-narrative');
@@ -677,20 +679,20 @@ function updateRiskAuditResults() {
   if (recsContainer) {
     if (res.criticalDeficiencies.length === 0) {
       recsContainer.innerHTML = `
-        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+        <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
           ✅ Zero high-exposure vulnerabilities logged. Continue contemporaneous operative reporting and closed-loop test tracking.
         </div>
       `;
     } else {
       recsContainer.innerHTML = `
         <div class="space-y-2">
-          <span class="text-[11px] font-bold text-rose-400 uppercase tracking-wider block">Priority Defensive Corrective Actions:</span>
+          <span class="text-[11px] font-bold text-rose-800 uppercase tracking-wider block">Priority Defensive Corrective Actions:</span>
           ${res.criticalDeficiencies.map(d => `
-            <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200 flex items-start gap-2">
-              <i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5"></i>
+            <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 flex items-start gap-2">
+              <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5"></i>
               <div>
                 <strong>${d.question} (${d.statute}):</strong>
-                <p class="text-slate-300 mt-0.5">Deficiency logged: "${d.selectedText.substring(0, 95)}...". Mandate explicit charting before hospital record closure.</p>
+                <p class="text-slate-700 mt-0.5">Deficiency logged: "${d.selectedText.substring(0, 95)}...". Mandate explicit charting before hospital record closure.</p>
               </div>
             </div>
           `).join('')}
@@ -698,6 +700,69 @@ function updateRiskAuditResults() {
       `;
       if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     }
+  }
+}
+
+// ==========================================
+// 4. PEER REVIEW & SUSPENSION SHIELD
+// ==========================================
+function initPeerReviewShield() {
+  const container = document.getElementById('peer-review-content-container');
+  if (!container) return;
+
+  container.innerHTML = PEER_REVIEW_DEFENSE_GUIDE.map(item => `
+    <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between shadow-xs">
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-mono font-bold">${item.urgency}</span>
+        </div>
+        <h3 class="text-sm font-bold text-slate-900">${item.topic}</h3>
+        <span class="text-[11px] text-slate-500 block font-mono font-medium">${item.statutoryBasis}</span>
+        <ul class="space-y-2 pt-2 text-xs text-slate-700">
+          ${item.protocol.map(p => `
+            <li class="flex items-start gap-2">
+              <span class="text-blue-600 font-bold">•</span>
+              <span class="leading-relaxed">${p}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ==========================================
+// 5. MALPRACTICE LITIGATION ROADMAP
+// ==========================================
+function initMalpracticeLitigation() {
+  const stagesContainer = document.getElementById('malpractice-stages-container');
+  if (stagesContainer) {
+    stagesContainer.innerHTML = MALPRACTICE_LITIGATION_STAGES.map(s => `
+      <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 hover:border-purple-300 transition shadow-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center text-xs font-mono font-bold">${s.step}</span>
+            ${s.stage}
+          </span>
+          <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-purple-900 font-mono font-bold">${s.duration}</span>
+        </div>
+        <p class="text-xs text-slate-600 leading-relaxed">${s.description}</p>
+        <div class="p-2.5 rounded-xl bg-white border border-slate-200 text-xs text-purple-900 shadow-xs">
+          <strong class="text-slate-900 block text-[11px] mb-0.5">Physician Strategic Priority:</strong>
+          ${s.physicianAction}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const tacticsContainer = document.getElementById('insurance-tactics-container');
+  if (tacticsContainer) {
+    tacticsContainer.innerHTML = MALPRACTICE_INSURANCE_TACTICS.map(t => `
+      <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
+        <h4 class="text-xs font-bold text-slate-900">${t.topic}</h4>
+        <p class="text-xs text-slate-600 leading-relaxed">${t.analysis}</p>
+      </div>
+    `).join('');
   }
 }
 
@@ -767,17 +832,17 @@ function renderStatutes(filterQuery = '') {
   }
 
   container.innerHTML = filtered.map(item => `
-    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5 flex flex-col justify-between">
+    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 flex flex-col justify-between shadow-xs">
       <div class="space-y-1.5">
         <div class="flex items-center justify-between">
-          <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-brand-400 font-mono font-semibold">${item.code}</span>
-          <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">${item.type}</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono font-bold">${item.code}</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-semibold">${item.type}</span>
         </div>
-        <h4 class="text-xs font-bold text-white">${item.title}</h4>
-        <p class="text-xs text-slate-300 leading-relaxed">${item.summary}</p>
+        <h4 class="text-xs font-bold text-slate-900">${item.title}</h4>
+        <p class="text-xs text-slate-600 leading-relaxed">${item.summary}</p>
       </div>
-      <div class="pt-2 border-t border-slate-800 text-xs text-brand-300/90">
-        <strong class="text-white text-[11px] block">Key Defensive Takeaway:</strong>
+      <div class="pt-2 border-t border-slate-200 text-xs text-emerald-900 font-medium">
+        <strong class="text-slate-900 text-[11px] block">Key Defensive Takeaway:</strong>
         ${item.keyTakeaway}
       </div>
     </div>
@@ -910,19 +975,19 @@ function appendChatMessage(role, text) {
 
   if (isUser) {
     div.innerHTML = `
-      <div class="p-3.5 rounded-2xl rounded-tr-none bg-brand-600 text-white max-w-xl text-xs leading-relaxed shadow">
+      <div class="p-3.5 rounded-2xl rounded-tr-none bg-slate-900 text-white max-w-xl text-xs leading-relaxed shadow-sm">
         ${escapeHtml(text)}
       </div>
-      <div class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 flex-shrink-0 font-bold text-xs">
+      <div class="w-8 h-8 rounded-xl bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-700 flex-shrink-0 font-bold text-xs shadow-xs">
         MD
       </div>
     `;
   } else {
     div.innerHTML = `
-      <div class="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center text-white flex-shrink-0 font-bold text-xs shadow-md">
+      <div class="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-emerald-400 flex-shrink-0 font-bold text-xs shadow-sm">
         ESQ
       </div>
-      <div class="p-4 rounded-2xl rounded-tl-none bg-slate-900 border border-slate-800 text-slate-200 max-w-2xl text-xs space-y-2 leading-relaxed shadow-lg">
+      <div class="p-4 rounded-2xl rounded-tl-none bg-white border border-slate-200 text-slate-800 max-w-2xl text-xs space-y-2 leading-relaxed shadow-xs">
         ${formatMarkdown(text)}
       </div>
     `;
@@ -939,10 +1004,10 @@ function appendTypingIndicator() {
   div.id = id;
   div.className = 'flex items-start space-x-3';
   div.innerHTML = `
-    <div class="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center text-white flex-shrink-0 font-bold text-xs">
+    <div class="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-emerald-400 flex-shrink-0 font-bold text-xs shadow-sm">
       ESQ
     </div>
-    <div class="p-3 rounded-2xl rounded-tl-none bg-slate-900 border border-slate-800 text-slate-400 text-xs flex items-center space-x-1.5">
+    <div class="p-3 rounded-2xl rounded-tl-none bg-white border border-slate-200 text-slate-400 text-xs flex items-center space-x-1.5 shadow-xs">
       <span class="w-2 h-2 rounded-full bg-slate-400 animate-bounce"></span>
       <span class="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]"></span>
       <span class="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]"></span>
@@ -964,9 +1029,9 @@ function escapeHtml(str) {
 
 function formatMarkdown(str) {
   return str
-    .replace(/### (.*?)\n/g, '<h4 class="text-xs font-bold text-white mt-2 mb-1">$1</h4>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em class="text-slate-300">$1</em>')
+    .replace(/### (.*?)\n/g, '<h4 class="text-xs font-bold text-slate-900 mt-2 mb-1">$1</h4>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-slate-900 font-semibold">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em class="text-slate-700">$1</em>')
     .replace(/\n\n/g, '<br><br>')
     .replace(/\n\* /g, '<br>• ');
 }

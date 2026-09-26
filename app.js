@@ -506,12 +506,12 @@ function renderContractResults(analysis) {
 
   if (gradeBox) {
     gradeBox.textContent = analysis.overallGrade;
-    gradeBox.className = `w-14 h-14 rounded-2xl bg-${analysis.gradeColor}-100 text-${analysis.gradeColor}-800 border border-${analysis.gradeColor}-300 flex items-center justify-center text-2xl font-black font-mono shadow-xs`;
+    gradeBox.className = `w-14 h-14 rounded-2xl bg-${analysis.gradeColor}-100 text-${analysis.gradeColor}-800 border border-${analysis.gradeColor}-300 flex items-center justify-center text-2xl font-black font-mono shadow-sm`;
   }
 
   if (flaggedCountPill) {
     flaggedCountPill.textContent = `${analysis.flaggedCount} Red Flag Clauses Flagged`;
-    flaggedCountPill.className = `text-xs px-2.5 py-0.5 rounded-full font-bold bg-${analysis.gradeColor}-100 text-${analysis.gradeColor}-800`;
+    flaggedCountPill.className = `text-xs px-3 py-1 rounded-full font-bold bg-${analysis.gradeColor}-100 text-${analysis.gradeColor}-800 border border-${analysis.gradeColor}-200`;
   }
 
   if (riskSummary) {
@@ -522,66 +522,101 @@ function renderContractResults(analysis) {
 
   if (analysis.flaggedClauses.length === 0) {
     container.innerHTML = `
-      <div class="p-8 rounded-3xl bg-emerald-50/70 border border-emerald-200 text-center space-y-2">
-        <span class="text-2xl">🛡️</span>
-        <h4 class="text-sm font-bold text-emerald-900">Zero Critical Toxic Clauses Detected</h4>
-        <p class="text-xs text-emerald-700 max-w-md mx-auto">Your draft agreement does not trigger any standard statutory non-compete, 100% tail liability, or clawback traps.</p>
+      <div class="p-8 rounded-3xl bg-emerald-50/80 border-2 border-dashed border-emerald-300 text-center space-y-2">
+        <span class="text-3xl">🛡️</span>
+        <h4 class="text-sm font-bold text-emerald-900 uppercase tracking-wider">Zero Critical Toxic Clauses Detected</h4>
+        <p class="text-xs text-emerald-700 max-w-md mx-auto leading-relaxed">Your draft agreement does not trigger standard predatory non-compete, 100% tail liability, or clawback traps.</p>
       </div>
     `;
     return;
   }
 
   container.innerHTML = analysis.flaggedClauses.map((clause, idx) => `
-    <div class="p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4 hover:border-slate-300 transition shadow-xs">
+    <div class="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-5 hover:border-slate-300 transition shadow-sm">
       
-      <!-- Clause Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
-        <div class="flex items-center space-x-2.5">
-          <span class="w-6 h-6 rounded-lg bg-rose-100 text-rose-800 flex items-center justify-center text-xs font-bold font-mono">
-            ${idx + 1}
+      <!-- Clause Header with Hazard Pill -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+        <div class="flex items-center space-x-3">
+          <span class="w-7 h-7 rounded-xl bg-rose-600 text-white flex items-center justify-center text-xs font-black font-mono shadow-xs">
+            0${idx + 1}
           </span>
-          <h4 class="text-sm font-bold text-slate-900">${clause.name}</h4>
+          <div>
+            <h4 class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">${clause.name}</h4>
+            <span class="text-[11px] text-slate-500 font-medium">${clause.category}</span>
+          </div>
         </div>
         <div class="flex items-center space-x-2">
-          <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-rose-100 text-rose-800 border border-rose-200">${clause.riskSeverity} Risk</span>
-          <span class="text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold bg-white border border-slate-200 text-slate-700">${clause.statutoryBasis}</span>
-        </div>
-      </div>
-
-      <!-- Legal Explanation & Statutory Standard -->
-      <div class="space-y-2 text-xs">
-        <p class="text-slate-700 leading-relaxed">${clause.riskExplanation}</p>
-        <div class="p-3 rounded-2xl bg-white border border-slate-200 text-slate-600 space-y-1">
-          <strong class="text-slate-900 block text-[11px]">⚖️ Statutory Benchmark:</strong>
-          <p class="leading-relaxed">${clause.legalStandard}</p>
-        </div>
-      </div>
-
-      <!-- Recommended Redline Replacement -->
-      <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="font-bold text-emerald-900 text-xs flex items-center gap-1.5">
-            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i> Recommended Replacement Redline
+          <span class="text-[11px] px-3 py-1 rounded-full font-bold ${clause.riskSeverity === 'Critical' ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-amber-100 text-amber-800 border border-amber-300'}">
+            ${clause.riskSeverity === 'Critical' ? '🚨 CRITICAL TRAP' : '⚠️ HIGH RISK'}
           </span>
-          <button class="btn-copy-redline px-3 py-1 rounded-lg bg-white hover:bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold text-[11px] transition shadow-xs" data-redline="${encodeURIComponent(clause.recommendedRedline)}">
-            Copy Redline
+          <span class="text-[11px] px-3 py-1 rounded-full font-mono font-bold bg-slate-100 border border-slate-200 text-slate-700">
+            ${clause.statutoryBasis}
+          </span>
+        </div>
+      </div>
+
+      <!-- Two-Column Visual Breakdown: The Trap vs The Legal Standard -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        
+        <!-- The Trap Box -->
+        <div class="p-4 rounded-2xl bg-rose-50/70 border border-rose-200/80 space-y-2 border-l-4 border-l-rose-500">
+          <div class="flex items-center space-x-1.5 text-rose-900 font-bold uppercase tracking-wider text-[10px]">
+            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-600"></i>
+            <span>The Hospital Trap Explained</span>
+          </div>
+          <p class="text-slate-800 leading-relaxed font-medium">${clause.riskExplanation}</p>
+        </div>
+
+        <!-- The Legal Standard Box -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 border-l-4 border-l-indigo-500">
+          <div class="flex items-center space-x-1.5 text-slate-900 font-bold uppercase tracking-wider text-[10px]">
+            <i data-lucide="scale" class="w-3.5 h-3.5 text-indigo-600"></i>
+            <span>Statutory Benchmark & Physician Rights</span>
+          </div>
+          <p class="text-slate-700 leading-relaxed font-medium">${clause.legalStandard}</p>
+        </div>
+
+      </div>
+
+      <!-- Recommended Redline Replacement (Copy-Ready Diff) -->
+      <div class="p-5 rounded-2xl bg-emerald-50/80 border border-emerald-300 text-xs space-y-3 border-l-4 border-l-emerald-600">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <div class="p-1 rounded-lg bg-emerald-200/80 text-emerald-900">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-800"></i>
+            </div>
+            <div>
+              <span class="font-extrabold text-emerald-950 text-xs block tracking-tight">Recommended Redline Replacement</span>
+              <span class="text-[10px] text-emerald-700 font-medium">Ready to insert into contract markup</span>
+            </div>
+          </div>
+          <button class="btn-copy-redline px-3.5 py-1.5 rounded-xl bg-white hover:bg-emerald-100 border border-emerald-300 text-emerald-950 font-bold text-xs transition shadow-xs flex items-center gap-1.5" data-redline="${encodeURIComponent(clause.recommendedRedline)}">
+            <i data-lucide="copy" class="w-3.5 h-3.5 text-emerald-700"></i>
+            <span>Copy Redline</span>
           </button>
         </div>
-        <pre class="whitespace-pre-wrap font-mono text-[11px] text-emerald-950 leading-relaxed bg-white/60 p-3 rounded-xl border border-emerald-100">${clause.recommendedRedline}</pre>
+        <pre class="whitespace-pre-wrap font-mono text-[11px] text-emerald-950 leading-relaxed bg-white p-3.5 rounded-xl border border-emerald-200 shadow-xs select-all">${clause.recommendedRedline}</pre>
       </div>
 
-      <!-- Physician Negotiation Script / Talking Points -->
-      <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs space-y-2">
+      <!-- Physician Negotiation Script (The Boardroom Shield) -->
+      <div class="p-5 rounded-2xl bg-amber-50/70 border border-amber-300 text-xs space-y-3 border-l-4 border-l-amber-500">
         <div class="flex items-center justify-between">
-          <span class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-            <i data-lucide="message-square" class="w-4 h-4 text-amber-600"></i> Word-for-Word Negotiation Script
-          </span>
-          <button class="btn-copy-script px-3 py-1 rounded-lg bg-white hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-[11px] transition shadow-xs" data-script="${encodeURIComponent(clause.negotiationScript)}">
-            Copy Talking Points
+          <div class="flex items-center space-x-2">
+            <div class="p-1 rounded-lg bg-amber-200/80 text-amber-900">
+              <i data-lucide="message-square" class="w-4 h-4 text-amber-800"></i>
+            </div>
+            <div>
+              <span class="font-extrabold text-amber-950 text-xs block tracking-tight">Word-for-Word Negotiation Talking Points</span>
+              <span class="text-[10px] text-amber-700 font-medium">Verbatim response script for administration meetings</span>
+            </div>
+          </div>
+          <button class="btn-copy-script px-3.5 py-1.5 rounded-xl bg-white hover:bg-amber-100 border border-amber-300 text-amber-950 font-bold text-xs transition shadow-xs flex items-center gap-1.5" data-script="${encodeURIComponent(clause.negotiationScript)}">
+            <i data-lucide="copy" class="w-3.5 h-3.5 text-amber-700"></i>
+            <span>Copy Script</span>
           </button>
         </div>
-        <blockquote class="italic text-slate-800 bg-white/70 p-3 rounded-xl border-l-3 border-amber-500 leading-relaxed font-sans">
-          ${clause.negotiationScript}
+        <blockquote class="italic text-slate-900 bg-white p-3.5 rounded-xl border border-amber-200 shadow-xs leading-relaxed font-sans font-medium">
+          “${clause.negotiationScript}”
         </blockquote>
       </div>
 
@@ -595,8 +630,12 @@ function renderContractResults(analysis) {
     btn.addEventListener('click', () => {
       const text = decodeURIComponent(btn.getAttribute('data-redline'));
       navigator.clipboard.writeText(text).then(() => {
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = 'Copy Redline'; }, 2000);
+        btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-700"></i><span>Copied!</span>`;
+        if (window.lucide) window.lucide.createIcons();
+        setTimeout(() => { 
+          btn.innerHTML = `<i data-lucide="copy" class="w-3.5 h-3.5 text-emerald-700"></i><span>Copy Redline</span>`;
+          if (window.lucide) window.lucide.createIcons();
+        }, 2000);
       });
     });
   });
@@ -605,8 +644,12 @@ function renderContractResults(analysis) {
     btn.addEventListener('click', () => {
       const text = decodeURIComponent(btn.getAttribute('data-script'));
       navigator.clipboard.writeText(text).then(() => {
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = 'Copy Talking Points'; }, 2000);
+        btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-amber-700"></i><span>Copied!</span>`;
+        if (window.lucide) window.lucide.createIcons();
+        setTimeout(() => { 
+          btn.innerHTML = `<i data-lucide="copy" class="w-3.5 h-3.5 text-amber-700"></i><span>Copy Script</span>`;
+          if (window.lucide) window.lucide.createIcons();
+        }, 2000);
       });
     });
   });
@@ -625,16 +668,41 @@ function renderShamFactors() {
   const container = document.getElementById('sham-factors-container');
   if (!container) return;
 
-  container.innerHTML = SHAM_PEER_REVIEW_FACTORS.map(f => `
-    <label class="flex items-start space-x-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition text-xs shadow-xs">
-      <input type="checkbox" data-factor-id="${f.id}" class="sham-factor-cb mt-1 text-blue-600 focus:ring-blue-500 rounded">
-      <div class="space-y-1">
-        <span class="font-bold text-slate-900 block">${f.title} (+${f.weight} pts)</span>
-        <p class="text-slate-600 leading-relaxed">${f.description}</p>
-        <span class="text-[11px] text-blue-700 block font-medium">📋 Key Evidence: ${f.evidenceRequired}</span>
+  // Categorize factors for clear visual grouping
+  const categories = [
+    { title: "Whistleblower & Retaliation Indicators", icon: "megaphone", color: "rose", factors: SHAM_PEER_REVIEW_FACTORS.slice(0, 3) },
+    { title: "Procedural Due Process Violations", icon: "scale", color: "indigo", factors: SHAM_PEER_REVIEW_FACTORS.slice(3, 7) },
+    { title: "Economic Competitor Conflicts & Targeting", icon: "briefcase", color: "amber", factors: SHAM_PEER_REVIEW_FACTORS.slice(7) }
+  ];
+
+  container.innerHTML = categories.map(cat => `
+    <div class="space-y-2.5">
+      <div class="flex items-center space-x-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
+        <i data-lucide="${cat.icon}" class="w-4 h-4 text-${cat.color}-600"></i>
+        <span>${cat.title}</span>
       </div>
-    </label>
+      <div class="space-y-2">
+        ${cat.factors.map(f => `
+          <label class="flex items-start space-x-3.5 p-4 rounded-2xl bg-white border border-slate-200/90 hover:border-blue-400 hover:bg-blue-50/20 cursor-pointer transition text-xs shadow-xs">
+            <input type="checkbox" data-factor-id="${f.id}" class="sham-factor-cb mt-1 text-blue-600 focus:ring-blue-500 rounded w-4 h-4 border-slate-300">
+            <div class="space-y-1.5 flex-1">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-slate-900 block text-xs sm:text-sm">${f.title}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-blue-100 text-blue-800">+${f.weight} pts</span>
+              </div>
+              <p class="text-slate-600 leading-relaxed">${f.description}</p>
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-[11px] text-slate-700 flex items-center gap-1.5 font-medium">
+                <i data-lucide="file-check" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0"></i>
+                <span><strong>Required Evidence:</strong> ${f.evidenceRequired}</span>
+              </div>
+            </div>
+          </label>
+        `).join('')}
+      </div>
+    </div>
   `).join('');
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 
   container.addEventListener('change', (e) => {
     if (e.target.classList.contains('sham-factor-cb')) {
@@ -651,13 +719,13 @@ function updateShamScore() {
   const badge = document.getElementById('sham-score-badge');
   if (badge) {
     badge.textContent = `Score: ${res.score} / 100 (${res.tier.toUpperCase()})`;
-    badge.className = `px-3 py-1 rounded-xl bg-${res.badgeClass}-50 text-${res.badgeClass}-800 font-mono font-bold text-xs border border-${res.badgeClass}-200`;
+    badge.className = `px-3 py-1.5 rounded-xl bg-${res.badgeClass}-50 text-${res.badgeClass}-800 font-mono font-bold text-xs border border-${res.badgeClass}-200 shadow-xs`;
   }
 
   const pill = document.getElementById('sham-tier-pill');
   if (pill) {
     pill.textContent = res.tierLabel;
-    pill.className = `text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-${res.badgeClass}-100 text-${res.badgeClass}-800`;
+    pill.className = `text-[11px] px-3 py-1 rounded-full font-bold bg-${res.badgeClass}-100 text-${res.badgeClass}-800 border border-${res.badgeClass}-300`;
   }
 
   const narrative = document.getElementById('sham-tier-narrative');
@@ -668,22 +736,27 @@ function renderSuspensionPlaybook() {
   const container = document.getElementById('suspension-playbook-container');
   if (!container) return;
 
-  container.innerHTML = SUMMARY_SUSPENSION_PLAYBOOK.map(p => `
-    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 hover:border-${p.color}-300 transition shadow-xs">
+  container.innerHTML = SUMMARY_SUSPENSION_PLAYBOOK.map((p, idx) => `
+    <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 space-y-3 hover:border-${p.color}-400 transition shadow-xs border-l-4 border-l-${p.color}-500">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-slate-900">${p.dayRange}</span>
-        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-${p.color}-100 text-${p.color}-800 font-mono font-bold">${p.phaseTitle}</span>
+        <span class="text-xs font-black text-slate-900 flex items-center gap-2">
+          <span class="w-6 h-6 rounded-lg bg-${p.color}-100 text-${p.color}-800 flex items-center justify-center text-xs font-mono font-bold">${idx + 1}</span>
+          ${p.dayRange}
+        </span>
+        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-${p.color}-100 text-${p.color}-800 font-mono font-bold border border-${p.color}-200">${p.phaseTitle}</span>
       </div>
-      <ul class="space-y-1.5 pt-1 text-xs text-slate-700">
+      <ul class="space-y-2 pt-1 text-xs text-slate-700">
         ${p.criticalActions.map(action => `
-          <li class="flex items-start gap-1.5">
-            <span class="text-${p.color}-600 font-bold">•</span>
-            <span class="leading-relaxed">${action}</span>
+          <li class="flex items-start gap-2">
+            <i data-lucide="check" class="w-3.5 h-3.5 text-${p.color}-600 flex-shrink-0 mt-0.5"></i>
+            <span class="leading-relaxed font-medium">${action}</span>
           </li>
         `).join('')}
       </ul>
     </div>
   `).join('');
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 }
 
 function renderNPDBMatrix() {
@@ -691,15 +764,15 @@ function renderNPDBMatrix() {
   if (!tbody) return;
 
   tbody.innerHTML = NPDB_REPORTING_MATRIX.map(m => `
-    <tr class="hover:bg-slate-50 transition">
+    <tr class="hover:bg-slate-50/80 transition">
       <td class="py-3 px-3 font-semibold text-slate-900">
         ${m.action}
         <span class="block text-[11px] text-slate-500 font-normal mt-0.5">${m.consequence}</span>
       </td>
       <td class="py-3 px-3 whitespace-nowrap">
         ${m.reportable 
-          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">🚨 MANDATORY REPORT</span>' 
-          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">🛡️ NO REPORT</span>'}
+          ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">🚨 MANDATORY REPORT</span>' 
+          : '<span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">🛡️ NO REPORT (SHIELDED)</span>'}
       </td>
       <td class="py-3 px-3 font-mono text-[11px] text-slate-600">${m.authority}</td>
     </tr>
@@ -720,36 +793,40 @@ function renderWMCPhases() {
   const container = document.getElementById('wmc-phases-container');
   if (!container) return;
 
-  container.innerHTML = WMC_PHASES.map(p => `
-    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 hover:border-amber-400 transition shadow-xs">
+  container.innerHTML = WMC_PHASES.map((p, idx) => `
+    <div class="p-5 rounded-2xl bg-white border border-slate-200/90 space-y-3 hover:border-amber-400 transition shadow-xs border-l-4 border-l-amber-500">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-slate-900 flex items-center gap-2">
-          <span class="w-6 h-6 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-mono font-bold">${p.phase}</span>
-          ${p.title}
+        <span class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-mono font-bold">${idx + 1}</span>
+          Phase ${p.phase}: ${p.title}
         </span>
-        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-amber-900 font-mono font-bold">${p.duration}</span>
+        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-amber-900 font-mono font-bold">⏱️ ${p.duration}</span>
       </div>
-      <p class="text-xs text-slate-600 leading-relaxed">${p.description}</p>
-      <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs text-amber-900 shadow-xs space-y-1">
-        <span class="font-bold text-slate-900 block text-[11px]">🛡️ Tactical Priority:</span>
-        <p class="text-slate-700 leading-relaxed">${p.tacticalPriority}</p>
+      <p class="text-xs text-slate-600 leading-relaxed font-medium">${p.description}</p>
+      <div class="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-amber-950 shadow-xs space-y-1">
+        <span class="font-extrabold text-amber-900 block text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+          <i data-lucide="shield" class="w-3.5 h-3.5 text-amber-700"></i> Tactical Priority:
+        </span>
+        <p class="text-slate-800 leading-relaxed font-medium">${p.tacticalPriority}</p>
       </div>
     </div>
   `).join('');
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 }
 
 function renderWMCResponseRules() {
   const container = document.getElementById('wmc-response-rules-container');
   if (!container) return;
 
-  container.innerHTML = WMC_RESPONSE_RULES.map(r => `
-    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 shadow-xs">
+  container.innerHTML = WMC_RESPONSE_RULES.map((r, idx) => `
+    <div class="p-4 rounded-2xl bg-white border border-slate-200/90 space-y-2 shadow-xs border-l-4 border-l-slate-900">
       <div class="flex items-center space-x-2">
-        <span class="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-mono font-bold">${r.ruleNum}</span>
-        <h4 class="text-xs font-bold text-slate-900">${r.title}</h4>
+        <span class="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-mono font-bold">0${idx + 1}</span>
+        <h4 class="text-xs sm:text-sm font-extrabold text-slate-900">${r.title}</h4>
       </div>
-      <p class="text-xs text-slate-700">${r.summary}</p>
-      <p class="text-[11px] text-slate-500 italic pt-0.5">${r.rationale}</p>
+      <p class="text-xs text-slate-700 font-medium leading-relaxed">${r.summary}</p>
+      <p class="text-[11px] text-slate-500 italic pt-1 border-t border-slate-100">⚖️ ${r.rationale}</p>
     </div>
   `).join('');
 }
@@ -758,18 +835,40 @@ function renderWMCPhrases() {
   const container = document.getElementById('wmc-phrases-container');
   if (!container) return;
 
-  container.innerHTML = WMC_PHRASE_DISRUPTER.map(pd => `
-    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
-      <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
-        <strong class="text-rose-900 block text-[11px]">❌ Fatal Admission Phrase:</strong>
-        "${pd.fatalPhrase}"
+  container.innerHTML = WMC_PHRASE_DISRUPTER.map((pd, idx) => `
+    <div class="p-4 rounded-2xl bg-white border border-slate-200/90 space-y-3 shadow-xs">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Disrupter #${idx + 1}</span>
+        <button class="btn-copy-wmc-phrase text-[10px] text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1" data-phrase="${encodeURIComponent(pd.masterResponse)}">
+          <i data-lucide="copy" class="w-3 h-3"></i> Copy Master Phrasing
+        </button>
       </div>
-      <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
-        <strong class="text-emerald-900 block text-[11px]">🛡️ Master Defense Response:</strong>
-        "${pd.masterResponse}"
+      <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 border-l-4 border-l-rose-500 space-y-1">
+        <strong class="text-rose-950 block text-[10px] uppercase font-black">❌ Fatal Admission to Never Utter:</strong>
+        <span class="font-medium italic">“${pd.fatalPhrase}”</span>
+      </div>
+      <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 border-l-4 border-l-emerald-600 space-y-1">
+        <strong class="text-emerald-950 block text-[10px] uppercase font-black">🛡️ Master Defense Phrasing:</strong>
+        <span class="font-medium">“${pd.masterResponse}”</span>
       </div>
     </div>
   `).join('');
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+
+  container.querySelectorAll('.btn-copy-wmc-phrase').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = decodeURIComponent(btn.getAttribute('data-phrase'));
+      navigator.clipboard.writeText(text).then(() => {
+        btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-emerald-700"></i> Copied!`;
+        if (window.lucide) window.lucide.createIcons();
+        setTimeout(() => {
+          btn.innerHTML = `<i data-lucide="copy" class="w-3 h-3"></i> Copy Master Phrasing`;
+          if (window.lucide) window.lucide.createIcons();
+        }, 2000);
+      });
+    });
+  });
 }
 
 function renderWMCSanctionsTable() {
@@ -777,7 +876,7 @@ function renderWMCSanctionsTable() {
   if (!tbody) return;
 
   tbody.innerHTML = WMC_SANCTION_HIERARCHY.map(s => `
-    <tr class="hover:bg-slate-50 transition">
+    <tr class="hover:bg-slate-50/80 transition">
       <td class="py-3 px-3 font-semibold text-slate-900">
         ${s.sanction}
         <span class="block text-[11px] text-slate-500 font-normal mt-0.5">${s.clinicalImpact}</span>
@@ -786,8 +885,8 @@ function renderWMCSanctionsTable() {
       <td class="py-3 px-3 font-mono text-[11px] text-slate-600">${s.publicRecord}</td>
       <td class="py-3 px-3 whitespace-nowrap">
         ${s.npdbReportable 
-          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">YES (Reportable)</span>' 
-          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">NO (Shielded)</span>'}
+          ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">YES (Reportable)</span>' 
+          : '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">NO (STID Shielded)</span>'}
       </td>
     </tr>
   `).join('');
@@ -806,18 +905,21 @@ function renderCardinalRules() {
   const container = document.getElementById('cardinal-rules-container');
   if (!container) return;
 
-  container.innerHTML = DEPOSITION_CARDINAL_RULES.map(r => `
-    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 hover:border-emerald-300 transition shadow-xs">
-      <div class="flex items-center space-x-2.5">
-        <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold font-mono">
-          ${r.num}
-        </span>
-        <h4 class="text-xs font-bold text-slate-900">${r.title}</h4>
+  container.innerHTML = DEPOSITION_CARDINAL_RULES.map((r, idx) => `
+    <div class="p-5 rounded-2xl bg-white border border-slate-200/90 space-y-3 hover:border-emerald-300 transition shadow-xs border-l-4 border-l-emerald-600">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black font-mono">
+            0${idx + 1}
+          </span>
+          <h4 class="text-xs sm:text-sm font-extrabold text-slate-900">${r.title}</h4>
+        </div>
+        <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-mono font-bold">Rule #${r.num}</span>
       </div>
-      <p class="text-xs text-slate-600 leading-relaxed">${r.summary}</p>
-      <div class="p-2.5 rounded-xl bg-white border border-slate-200 text-xs text-emerald-800 font-semibold shadow-xs">
-        <span class="font-bold text-slate-900 block text-[11px] mb-0.5">Execution Rule:</span>
-        "${r.rule}"
+      <p class="text-xs text-slate-600 leading-relaxed font-medium">${r.summary}</p>
+      <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-950 font-semibold shadow-xs space-y-1">
+        <span class="font-extrabold text-emerald-900 block text-[10px] uppercase tracking-wider">The Golden Execution Commandment:</span>
+        <blockquote class="italic">“${r.rule}”</blockquote>
       </div>
     </div>
   `).join('');
@@ -828,28 +930,50 @@ function renderReptileTraps() {
   if (!container) return;
 
   container.innerHTML = REPTILE_THEORY_COUNTERMEASURES.map((trap, idx) => `
-    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-rose-700 flex items-center gap-1.5">
-          <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-600"></i> Plaintiff Trap #${idx + 1}
+    <div class="p-5 rounded-2xl bg-white border border-slate-200/90 space-y-3 shadow-xs">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <span class="text-xs font-extrabold text-rose-700 flex items-center gap-1.5">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600"></i> Plaintiff Reptile Ambush #${idx + 1}
         </span>
-        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono font-semibold">Reptile Theory</span>
+        <button class="btn-copy-reptile-defense text-[10px] text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1" data-defense="${encodeURIComponent(trap.masterDefenseResponse)}">
+          <i data-lucide="copy" class="w-3 h-3"></i> Copy Defense Response
+        </button>
       </div>
-      <blockquote class="text-xs italic text-slate-800 bg-white p-2.5 rounded-xl border-l-3 border-rose-500 shadow-xs">
-        "${trap.plaintiffTrap}"
+      
+      <!-- Plaintiff Question -->
+      <blockquote class="text-xs italic text-slate-900 bg-rose-50/60 p-3 rounded-xl border border-rose-200 border-l-4 border-l-rose-500 shadow-xs font-medium">
+        “${trap.plaintiffTrap}”
       </blockquote>
-      <div class="space-y-1.5 text-xs">
-        <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800">
-          <strong class="text-rose-900 block text-[11px]">❌ Dangerous Concession:</strong>
-          "${trap.flawedAnswer}"
+
+      <!-- Attack vs Defense Grid -->
+      <div class="space-y-2 text-xs">
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 space-y-0.5">
+          <strong class="text-rose-800 block text-[10px] uppercase font-black">❌ Why The Fatal Concession Fails:</strong>
+          <span class="font-medium">“${trap.flawedAnswer}”</span>
         </div>
-        <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
-          <strong class="text-emerald-900 block text-[11px]">🛡️ Master Defense Response:</strong>
-          "${trap.masterDefenseResponse}"
+        <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 border-l-4 border-l-emerald-600 space-y-0.5">
+          <strong class="text-emerald-900 block text-[10px] uppercase font-black">🛡️ Master Countermeasure Response:</strong>
+          <span class="font-medium">“${trap.masterDefenseResponse}”</span>
         </div>
       </div>
     </div>
   `).join('');
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+
+  container.querySelectorAll('.btn-copy-reptile-defense').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = decodeURIComponent(btn.getAttribute('data-defense'));
+      navigator.clipboard.writeText(text).then(() => {
+        btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-emerald-700"></i> Copied!`;
+        if (window.lucide) window.lucide.createIcons();
+        setTimeout(() => {
+          btn.innerHTML = `<i data-lucide="copy" class="w-3 h-3"></i> Copy Defense Response`;
+          if (window.lucide) window.lucide.createIcons();
+        }, 2000);
+      });
+    });
+  });
 }
 
 function renderMockDeposition() {
@@ -860,36 +984,54 @@ function renderMockDeposition() {
   if (!scen) return;
 
   container.innerHTML = `
-    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-      <div class="flex items-center justify-between">
-        <span class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">${scen.specialty}</span>
-        <div class="flex space-x-1">
-          <button id="btn-prev-scen" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700 ${state.currentMockDepIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''}">Prev</button>
-          <button id="btn-next-scen" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700 ${state.currentMockDepIndex === MOCK_DEPOSITION_SCENARIOS.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}">Next</button>
+    <div class="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-4 shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-[11px] px-3 py-0.5 rounded-full font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300 uppercase tracking-wider">${scen.specialty}</span>
+          <span class="text-xs text-slate-500 font-medium">Scenario ${state.currentMockDepIndex + 1} of ${MOCK_DEPOSITION_SCENARIOS.length}</span>
+        </div>
+        <div class="flex space-x-1.5">
+          <button id="btn-prev-scen" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 transition ${state.currentMockDepIndex === 0 ? 'opacity-40 cursor-not-allowed' : ''}">Prev</button>
+          <button id="btn-next-scen" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition ${state.currentMockDepIndex === MOCK_DEPOSITION_SCENARIOS.length - 1 ? 'opacity-40 cursor-not-allowed' : ''}">Next Scenario</button>
         </div>
       </div>
-      <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 shadow-xs">
-        <strong class="text-slate-900 block mb-1">Clinical Case Context:</strong>
-        ${scen.context}
+
+      <!-- Clinical Context Card -->
+      <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 shadow-xs space-y-1 border-l-4 border-l-indigo-500">
+        <strong class="text-slate-900 block text-[11px] uppercase font-black tracking-wider flex items-center gap-1.5">
+          <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-600"></i> Clinical Case Context & Complication:
+        </strong>
+        <p class="leading-relaxed font-medium">${scen.context}</p>
       </div>
-      <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
-        <strong class="text-rose-900 block mb-1">Plaintiff Attorney Cross-Examination Question:</strong>
-        "${scen.question}"
+
+      <!-- Plaintiff Question -->
+      <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-950 border-l-4 border-l-rose-500 shadow-xs space-y-1">
+        <strong class="text-rose-950 block text-[11px] uppercase font-black tracking-wider flex items-center gap-1.5">
+          <i data-lucide="crosshair" class="w-3.5 h-3.5 text-rose-600"></i> Plaintiff Attorney Cross-Examination Question:
+        </strong>
+        <blockquote class="text-sm font-semibold italic">“${scen.question}”</blockquote>
       </div>
-      <div class="space-y-2 pt-1">
-        <span class="text-xs font-bold text-slate-800 block">Select Your Sworn Deposition Response:</span>
+
+      <!-- Sworn Response Options -->
+      <div class="space-y-2.5 pt-1">
+        <span class="text-xs font-black text-slate-900 uppercase tracking-wider block">Select Your Sworn Deposition Response:</span>
         ${scen.options.map((opt, optIdx) => `
-          <button class="mock-dep-opt w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-emerald-500 bg-white hover:bg-emerald-50/40 text-xs text-slate-800 transition space-y-1 block shadow-xs" data-opt-idx="${optIdx}">
+          <button class="mock-dep-opt w-full text-left p-4 rounded-2xl border border-slate-200 hover:border-emerald-500 bg-white hover:bg-emerald-50/30 text-xs text-slate-800 transition space-y-1 block shadow-xs group" data-opt-idx="${optIdx}">
             <div class="flex items-center justify-between">
-              <span class="font-bold text-slate-900">Option ${String.fromCharCode(65 + optIdx)}</span>
+              <span class="font-extrabold text-slate-900 group-hover:text-emerald-900">Option ${String.fromCharCode(65 + optIdx)}</span>
+              <span class="text-[10px] text-slate-400 group-hover:text-emerald-700 font-mono">Click to Test</span>
             </div>
-            <p class="text-slate-700 leading-relaxed">${opt.text}</p>
+            <p class="text-slate-700 leading-relaxed font-medium">“${opt.text}”</p>
           </button>
         `).join('')}
       </div>
-      <div id="mock-feedback-box" class="hidden p-4 rounded-2xl border text-xs space-y-2"></div>
+
+      <!-- Feedback Result Box -->
+      <div id="mock-feedback-box" class="hidden p-5 rounded-2xl border text-xs space-y-2"></div>
     </div>
   `;
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 
   document.getElementById('btn-prev-scen')?.addEventListener('click', () => {
     if (state.currentMockDepIndex > 0) {
@@ -922,24 +1064,30 @@ function showMockFeedback(scen, optIdx) {
   const isMaster = opt.grade.startsWith('A');
 
   if (isMaster) {
-    box.className = 'p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 space-y-1.5 shadow-xs';
+    box.className = 'p-5 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-950 space-y-2 shadow-sm border-l-4 border-l-emerald-600';
     box.innerHTML = `
-      <div class="flex items-center justify-between">
-        <strong class="text-emerald-800 font-bold text-sm">Grade: ${opt.grade} • ${opt.rating}</strong>
-        <span class="text-[10px] px-2.5 py-0.5 rounded bg-emerald-200 text-emerald-900 font-mono font-bold">Trial Ready</span>
+      <div class="flex items-center justify-between border-b border-emerald-200 pb-2">
+        <strong class="text-emerald-950 font-black text-sm flex items-center gap-1.5">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-700"></i> Grade: ${opt.grade} • ${opt.rating}
+        </strong>
+        <span class="text-[10px] px-3 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-mono font-bold">Trial Ready Master Defense</span>
       </div>
-      <p class="text-slate-700 leading-relaxed">${opt.analysis}</p>
+      <p class="text-slate-800 leading-relaxed font-medium">${opt.analysis}</p>
     `;
   } else {
-    box.className = 'p-4 rounded-2xl bg-rose-50 border border-rose-300 text-xs text-rose-900 space-y-1.5 shadow-xs';
+    box.className = 'p-5 rounded-2xl bg-rose-50 border border-rose-300 text-xs text-rose-950 space-y-2 shadow-sm border-l-4 border-l-rose-600';
     box.innerHTML = `
-      <div class="flex items-center justify-between">
-        <strong class="text-rose-800 font-bold text-sm">Grade: ${opt.grade} • ${opt.rating}</strong>
-        <span class="text-[10px] px-2.5 py-0.5 rounded bg-rose-200 text-rose-900 font-mono font-bold">Severe Exposure</span>
+      <div class="flex items-center justify-between border-b border-rose-200 pb-2">
+        <strong class="text-rose-950 font-black text-sm flex items-center gap-1.5">
+          <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-700"></i> Grade: ${opt.grade} • ${opt.rating}
+        </strong>
+        <span class="text-[10px] px-3 py-0.5 rounded-full bg-rose-200 text-rose-900 font-mono font-bold">Severe Liability Exposure</span>
       </div>
-      <p class="text-slate-700 leading-relaxed">${opt.analysis}</p>
+      <p class="text-slate-800 leading-relaxed font-medium">${opt.analysis}</p>
     `;
   }
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 }
 
 // ==========================================
@@ -1073,20 +1221,21 @@ function initRiskAudit() {
   const container = document.getElementById('risk-questions-container');
   if (!container) return;
 
-  container.innerHTML = RISK_QUESTIONS.map((q) => `
-    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3" id="card-${q.id}">
+  container.innerHTML = RISK_QUESTIONS.map((q, idx) => `
+    <div class="p-5 rounded-2xl bg-white border border-slate-200/90 space-y-3 shadow-xs border-l-4 border-l-slate-700" id="card-${q.id}">
       <div class="flex items-center justify-between">
-        <h4 class="text-xs font-bold text-slate-900 flex items-center gap-2">
+        <h4 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-mono font-bold">${idx + 1}</span>
           ${q.title}
         </h4>
-        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono font-semibold">${q.statute}</span>
+        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-mono font-bold">${q.statute}</span>
       </div>
-      <p class="text-xs text-slate-600">${q.question}</p>
-      <div class="grid grid-cols-1 gap-2 pt-1">
+      <p class="text-xs text-slate-600 leading-relaxed font-medium">${q.question}</p>
+      <div class="grid grid-cols-1 gap-2.5 pt-1">
         ${q.options.map((opt, optIndex) => `
-          <label class="flex items-start space-x-2.5 p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-100/80 cursor-pointer transition text-xs text-slate-800 shadow-xs">
-            <input type="radio" name="${q.id}" value="${optIndex}" class="mt-0.5 text-emerald-600 focus:ring-emerald-500" ${state.auditAnswers[q.id] === optIndex ? 'checked' : ''}>
-            <span class="leading-relaxed">${opt.text}</span>
+          <label class="flex items-start space-x-3 p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-emerald-50/40 hover:border-emerald-400 cursor-pointer transition text-xs text-slate-800 shadow-xs">
+            <input type="radio" name="${q.id}" value="${optIndex}" class="mt-0.5 text-emerald-600 focus:ring-emerald-500 w-4 h-4" ${state.auditAnswers[q.id] === optIndex ? 'checked' : ''}>
+            <span class="leading-relaxed font-medium">${opt.text}</span>
           </label>
         `).join('')}
       </div>
@@ -1115,13 +1264,13 @@ function updateRiskAuditResults() {
   const badge = document.getElementById('mvi-score-badge');
   if (badge) {
     badge.textContent = `MVI: ${res.score} / 100 (${res.tier.toUpperCase()})`;
-    badge.className = `px-4 py-1.5 rounded-xl bg-${res.badgeColor}-50 border border-${res.badgeColor}-200 text-${res.badgeColor}-800 font-mono font-bold text-sm`;
+    badge.className = `px-4 py-1.5 rounded-xl bg-${res.badgeColor}-50 border border-${res.badgeColor}-200 text-${res.badgeColor}-800 font-mono font-bold text-sm shadow-xs`;
   }
 
   const tierLabel = document.getElementById('mvi-tier-label');
   if (tierLabel) {
     tierLabel.textContent = res.tierLabel;
-    tierLabel.className = `text-xs font-bold px-2.5 py-0.5 rounded-full bg-${res.badgeColor}-100 text-${res.badgeColor}-800 border border-${res.badgeColor}-200`;
+    tierLabel.className = `text-xs font-bold px-3 py-1 rounded-full bg-${res.badgeColor}-100 text-${res.badgeColor}-800 border border-${res.badgeColor}-300`;
   }
 
   const narrative = document.getElementById('mvi-tier-narrative');
@@ -1131,27 +1280,28 @@ function updateRiskAuditResults() {
   if (recsContainer) {
     if (res.criticalDeficiencies.length === 0) {
       recsContainer.innerHTML = `
-        <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
-          ✅ Zero high-exposure vulnerabilities logged. Continue contemporaneous operative reporting and closed-loop test tracking.
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-950 flex items-center gap-2 border-l-4 border-l-emerald-600">
+          <i data-lucide="shield-check" class="w-5 h-5 text-emerald-700 flex-shrink-0"></i>
+          <span><strong>Zero High-Exposure Vulnerabilities Logged.</strong> Continue contemporaneous operative reporting and closed-loop test tracking.</span>
         </div>
       `;
     } else {
       recsContainer.innerHTML = `
-        <div class="space-y-2">
-          <span class="text-[11px] font-bold text-rose-800 uppercase tracking-wider block">Priority Defensive Corrective Actions:</span>
+        <div class="space-y-2.5">
+          <span class="text-[11px] font-black text-rose-900 uppercase tracking-wider block">Priority Defensive Corrective Actions:</span>
           ${res.criticalDeficiencies.map(d => `
-            <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 flex items-start gap-2">
+            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-950 flex items-start gap-2.5 border-l-4 border-l-rose-500 shadow-xs">
               <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5"></i>
               <div>
-                <strong>${d.question} (${d.statute}):</strong>
-                <p class="text-slate-700 mt-0.5">Deficiency logged: "${d.selectedText.substring(0, 95)}...". Mandate explicit charting before hospital record closure.</p>
+                <strong class="text-rose-950 block">${d.question} (${d.statute}):</strong>
+                <p class="text-slate-800 mt-1 leading-relaxed">Deficiency logged: "${d.selectedText.substring(0, 95)}...". Mandate explicit charting before hospital record closure.</p>
               </div>
             </div>
           `).join('')}
         </div>
       `;
-      if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     }
+    if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
   }
 }
 
@@ -1161,19 +1311,21 @@ function updateRiskAuditResults() {
 function initMalpracticeLitigation() {
   const stagesContainer = document.getElementById('malpractice-stages-container');
   if (stagesContainer) {
-    stagesContainer.innerHTML = MALPRACTICE_LITIGATION_STAGES.map(s => `
-      <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 hover:border-purple-300 transition shadow-xs">
+    stagesContainer.innerHTML = MALPRACTICE_LITIGATION_STAGES.map((s, idx) => `
+      <div class="p-5 rounded-2xl bg-white border border-slate-200/90 space-y-3 hover:border-purple-400 transition shadow-xs border-l-4 border-l-purple-600">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-slate-900 flex items-center gap-2">
-            <span class="w-6 h-6 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center text-xs font-mono font-bold">${s.step}</span>
+          <span class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center text-xs font-mono font-bold">${idx + 1}</span>
             ${s.stage}
           </span>
-          <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-purple-900 font-mono font-bold">${s.duration}</span>
+          <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-purple-900 font-mono font-bold">⏱️ ${s.duration}</span>
         </div>
-        <p class="text-xs text-slate-600 leading-relaxed">${s.description}</p>
-        <div class="p-2.5 rounded-xl bg-white border border-slate-200 text-xs text-purple-900 shadow-xs">
-          <strong class="text-slate-900 block text-[11px] mb-0.5">Physician Strategic Priority:</strong>
-          ${s.physicianAction}
+        <p class="text-xs text-slate-600 leading-relaxed font-medium">${s.description}</p>
+        <div class="p-3 rounded-xl bg-purple-50/70 border border-purple-200 text-xs text-purple-950 shadow-xs space-y-1">
+          <strong class="text-purple-900 block text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-purple-700"></i> Physician Strategic Priority:
+          </strong>
+          <p class="text-slate-800 leading-relaxed font-medium">${s.physicianAction}</p>
         </div>
       </div>
     `).join('');
@@ -1182,12 +1334,14 @@ function initMalpracticeLitigation() {
   const tacticsContainer = document.getElementById('insurance-tactics-container');
   if (tacticsContainer) {
     tacticsContainer.innerHTML = MALPRACTICE_INSURANCE_TACTICS.map(t => `
-      <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
-        <h4 class="text-xs font-bold text-slate-900">${t.topic}</h4>
-        <p class="text-xs text-slate-600 leading-relaxed">${t.analysis}</p>
+      <div class="p-4 rounded-2xl bg-white border border-slate-200/90 space-y-2 shadow-xs border-l-4 border-l-slate-900">
+        <h4 class="text-xs sm:text-sm font-extrabold text-slate-900">${t.topic}</h4>
+        <p class="text-xs text-slate-600 leading-relaxed font-medium">${t.analysis}</p>
       </div>
     `).join('');
   }
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 }
 
 // ==========================================
@@ -1256,21 +1410,23 @@ function renderStatutes(filterQuery = '') {
   }
 
   container.innerHTML = filtered.map(item => `
-    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 flex flex-col justify-between shadow-xs">
-      <div class="space-y-1.5">
+    <div class="p-5 rounded-2xl bg-white border border-slate-200/90 space-y-3 flex flex-col justify-between shadow-xs hover:border-teal-400 transition border-l-4 border-l-teal-600">
+      <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono font-bold">${item.code}</span>
-          <span class="text-[10px] px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-semibold">${item.type}</span>
+          <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 font-mono font-bold border border-teal-200">${item.code}</span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 font-bold">${item.type}</span>
         </div>
-        <h4 class="text-xs font-bold text-slate-900">${item.title}</h4>
-        <p class="text-xs text-slate-600 leading-relaxed">${item.summary}</p>
+        <h4 class="text-xs sm:text-sm font-extrabold text-slate-900">${item.title}</h4>
+        <p class="text-xs text-slate-600 leading-relaxed font-medium">${item.summary}</p>
       </div>
-      <div class="pt-2 border-t border-slate-200 text-xs text-emerald-900 font-medium">
-        <strong class="text-slate-900 text-[11px] block">Key Defensive Takeaway:</strong>
+      <div class="pt-3 border-t border-slate-100 text-xs text-teal-950 font-medium bg-teal-50/50 p-3 rounded-xl border border-teal-100">
+        <strong class="text-teal-950 text-[10px] uppercase font-black block tracking-wider mb-0.5">Key Defensive Takeaway:</strong>
         ${item.keyTakeaway}
       </div>
     </div>
   `).join('');
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 }
 
 // ==========================================

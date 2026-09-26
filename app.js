@@ -12,6 +12,8 @@ import { WMC_PHASES, WMC_RESPONSE_RULES, WMC_PHRASE_DISRUPTER, WMC_SANCTION_HIER
 import { MALPRACTICE_LITIGATION_STAGES, MALPRACTICE_INSURANCE_TACTICS } from './data/malpractice_timeline.js';
 export { SAMPLE_HOSPITAL_CONTRACT, CONTRACT_CLAUSE_RULES, analyzeContractText } from './data/contract_analyzer.js';
 import { SAMPLE_HOSPITAL_CONTRACT, CONTRACT_CLAUSE_RULES, analyzeContractText } from './data/contract_analyzer.js';
+export { MALPRACTICE_PRECEDENTS, findPrecedentCases } from './data/malpractice_precedents.js';
+import { MALPRACTICE_PRECEDENTS, findPrecedentCases } from './data/malpractice_precedents.js';
 
 // Application State
 const state = {
@@ -1306,9 +1308,22 @@ function updateRiskAuditResults() {
 }
 
 // ==========================================
-// 7. MALPRACTICE LITIGATION ROADMAP
+// 7. MALPRACTICE LITIGATION & PRECEDENT RADAR
 // ==========================================
+let speechRecognitionInstance = null;
+let isRecordingVoice = false;
+
+const PRESET_CASE_TEXTS = {
+  'dural-tear': "Patient underwent elective L4-L5 lumbar discectomy for herniated nucleus pulposus. Intraoperatively, an incidental dural tear was encountered during scar tissue dissection. The surgeon performed primary watertight suture repair with 5-0 Prolene and reinforced with DuraSeal. Postoperatively, patient developed persistent positional headache and pseudomeningocele requiring revision surgery. Plaintiff alleging lack of informed consent and negligent surgical technique.",
+  'cauda-equina': "Patient presented to Emergency Department with acute lower back pain, bilateral lower extremity paresthesias, and urinary hesitation. Emergency physician discharged on muscle relaxants without checking post-void residual or perianal sensation. 36 hours later patient returned with complete saddle anesthesia and cauda equina syndrome.",
+  'pedicle-screw': "Patient underwent posterior instrumented lumbar fusion. Post-op CT demonstrated a 2.5 mm medial wall pedicle screw breach contacting the L5 nerve root with new motor weakness. Surgeon returned to OR on post-op day 2 to revise screw. Plaintiff claiming negligent hardware placement.",
+  'retained-sponge': "Following complex open abdominal surgery, patient developed persistent fever and abdominal pain. Imaging 3 months later revealed a retained laparotomy sponge in the peritoneal cavity despite nursing count reported as correct.",
+  'imaging-comm': "Outpatient CT scan revealed a 1.8 cm suspicious pulmonary nodule. Radiologist noted recommendation for follow-up in the body of the report but did not flag or directly communicate with the ordering physician. Primary care physician never received notification; patient diagnosed 2 years later with metastatic lung cancer."
+};
+
 function initMalpracticeLitigation() {
+  initPrecedentFinder();
+
   const stagesContainer = document.getElementById('malpractice-stages-container');
   if (stagesContainer) {
     stagesContainer.innerHTML = MALPRACTICE_LITIGATION_STAGES.map((s, idx) => `
@@ -1342,6 +1357,259 @@ function initMalpracticeLitigation() {
   }
 
   if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+}
+
+function initPrecedentFinder() {
+  const input = document.getElementById('precedent-case-input');
+  const searchBtn = document.getElementById('btn-find-precedents');
+  const clearBtn = document.getElementById('btn-clear-precedent');
+  const voiceBtn = document.getElementById('btn-precedent-voice');
+  const voiceIndicator = document.getElementById('voice-status-indicator');
+  const micIcon = document.getElementById('icon-voice-mic');
+  const jurSelect = document.getElementById('precedent-jurisdiction-select');
+
+  // Preset Scenario Buttons
+  document.querySelectorAll('.btn-preset-case').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const presetKey = btn.getAttribute('data-preset');
+      const text = PRESET_CASE_TEXTS[presetKey];
+      if (text && input) {
+        input.value = text;
+        runPrecedentAnalysis(text, jurSelect?.value || 'ALL');
+      }
+    });
+  });
+
+  // Clear Button
+  clearBtn?.addEventListener('click', () => {
+    if (input) input.value = '';
+    const resultsContainer = document.getElementById('precedent-results-container');
+    if (resultsContainer) {
+      resultsContainer.innerHTML = `
+        <div class="p-8 rounded-3xl bg-slate-50/70 border border-slate-200 text-center space-y-2">
+          <span class="text-3xl">⚖️</span>
+          <h4 class="text-sm font-bold text-slate-800">No Case Scenario Entered Yet</h4>
+          <p class="text-xs text-slate-500 max-w-md mx-auto">Type or dictate your clinical case above or click a scenario preset to analyze matching precedents across WA, OR, CA, and NY.</p>
+        </div>
+      `;
+    }
+  });
+
+  // Search Button
+  searchBtn?.addEventListener('click', () => {
+    const text = input?.value.trim();
+    if (!text) return;
+    runPrecedentAnalysis(text, jurSelect?.value || 'ALL');
+  });
+
+  jurSelect?.addEventListener('change', () => {
+    const text = input?.value.trim();
+    if (text) {
+      runPrecedentAnalysis(text, jurSelect.value);
+    }
+  });
+
+  // Voice Dictation (Speech-to-Text via Web Speech API)
+  if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    speechRecognitionInstance = new SpeechRec();
+    speechRecognitionInstance.continuous = false;
+    speechRecognitionInstance.interimResults = true;
+    speechRecognitionInstance.lang = 'en-US';
+
+    speechRecognitionInstance.onstart = () => {
+      isRecordingVoice = true;
+      voiceIndicator?.classList.remove('hidden');
+      voiceIndicator?.classList.add('flex');
+      if (micIcon) micIcon.className = "w-4 h-4 text-rose-600 animate-pulse";
+    };
+
+    speechRecognitionInstance.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          if (input) {
+            input.value = (input.value ? input.value + ' ' : '') + event.results[i][0].transcript;
+          }
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+    };
+
+    speechRecognitionInstance.onerror = (event) => {
+      console.warn('Speech recognition error:', event.error);
+      stopVoiceRecording();
+    };
+
+    speechRecognitionInstance.onend = () => {
+      stopVoiceRecording();
+      const text = input?.value.trim();
+      if (text) {
+        runPrecedentAnalysis(text, jurSelect?.value || 'ALL');
+      }
+    };
+
+    voiceBtn?.addEventListener('click', () => {
+      if (isRecordingVoice) {
+        speechRecognitionInstance.stop();
+      } else {
+        try {
+          speechRecognitionInstance.start();
+        } catch (e) {
+          console.warn('Could not start speech recognition:', e);
+        }
+      }
+    });
+  } else {
+    if (voiceBtn) {
+      voiceBtn.title = "Voice dictation not supported in this browser (Use Chrome or Edge)";
+      voiceBtn.classList.add('opacity-50');
+    }
+  }
+}
+
+function stopVoiceRecording() {
+  isRecordingVoice = false;
+  const voiceIndicator = document.getElementById('voice-status-indicator');
+  const micIcon = document.getElementById('icon-voice-mic');
+  voiceIndicator?.classList.add('hidden');
+  voiceIndicator?.classList.remove('flex');
+  if (micIcon) micIcon.className = "w-4 h-4 text-purple-600";
+}
+
+export function runPrecedentAnalysis(rawText, jurisdictionFilter = 'ALL') {
+  const container = document.getElementById('precedent-results-container');
+  if (!container) return;
+
+  const sanitized = sanitizePHI(rawText);
+  const matches = findPrecedentCases(sanitized, jurisdictionFilter);
+
+  if (matches.length === 0) {
+    container.innerHTML = `
+      <div class="p-8 rounded-3xl bg-amber-50/70 border border-amber-200 text-center space-y-2">
+        <span class="text-3xl">🔍</span>
+        <h4 class="text-sm font-bold text-amber-950">No Direct Precedent Matches Found in Local Corpus</h4>
+        <p class="text-xs text-slate-600 max-w-md mx-auto">Try broadening your clinical keywords or selecting "All Jurisdictions". MDEsq AI Copilot can also provide live case analysis via edge synthesis.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <!-- Precedent Header Summary -->
+    <div class="p-5 rounded-3xl bg-gradient-to-r from-purple-50 via-slate-50 to-white border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-black text-sm">
+          ${matches.length}
+        </div>
+        <div>
+          <h4 class="text-sm font-extrabold text-slate-900 tracking-tight">Relevant Landmark & Contemporary Precedents Identified</h4>
+          <span class="text-xs text-slate-600 font-medium">Ranked by factual similarity and judicial holding applicability</span>
+        </div>
+      </div>
+      <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-white border border-purple-200 text-purple-900 shadow-xs">
+        Filter: ${jurisdictionFilter === 'ALL' ? 'All States (WA, OR, CA, NY)' : jurisdictionFilter}
+      </span>
+    </div>
+
+    <!-- Precedent Cards List -->
+    <div class="space-y-5">
+      ${matches.map((c, idx) => `
+        <div class="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-5 hover:border-purple-300 transition shadow-sm border-l-4 border-l-purple-600">
+          
+          <!-- Card Top Bar -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div class="flex items-center space-x-2.5">
+              <span class="w-7 h-7 rounded-xl bg-purple-100 text-purple-900 flex items-center justify-center text-xs font-black font-mono">
+                0${idx + 1}
+              </span>
+              <div>
+                <h4 class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">${c.title}</h4>
+                <span class="text-[11px] text-purple-700 font-semibold font-mono">${c.citation}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                ${c.jurisdictionName} (${c.jurisdiction})
+              </span>
+              <span class="text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                ${c.matchScore}% Match
+              </span>
+            </div>
+          </div>
+
+          <!-- Case Facts & Legal Holding -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 border-l-3 border-l-slate-400">
+              <strong class="text-slate-900 block text-[10px] uppercase tracking-wider font-black flex items-center gap-1.5">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-600"></i> Clinical Fact Pattern:
+              </strong>
+              <p class="text-slate-700 leading-relaxed font-medium">${c.factPattern}</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-1.5 border-l-3 border-l-indigo-500">
+              <strong class="text-indigo-950 block text-[10px] uppercase tracking-wider font-black flex items-center gap-1.5">
+                <i data-lucide="gavel" class="w-3.5 h-3.5 text-indigo-700"></i> Judicial Holding & Verdict:
+              </strong>
+              <p class="text-indigo-950 leading-relaxed font-medium">${c.holding}</p>
+              <span class="inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-bold bg-white text-indigo-900 border border-indigo-200">
+                Outcome: ${c.verdictOutcome}
+              </span>
+            </div>
+          </div>
+
+          <!-- Standard of Care Defense Strategy -->
+          <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs space-y-1.5 border-l-4 border-l-amber-500">
+            <strong class="text-amber-950 block text-[10px] uppercase tracking-wider font-black flex items-center gap-1.5">
+              <i data-lucide="shield" class="w-3.5 h-3.5 text-amber-700"></i> Standard of Care Defensive Strategy:
+            </strong>
+            <p class="text-slate-800 leading-relaxed font-medium">${c.defenseStrategy}</p>
+          </div>
+
+          <!-- Defensive Charting Directive (Copy-Ready) -->
+          <div class="p-5 rounded-2xl bg-emerald-50/80 border border-emerald-300 text-xs space-y-3 border-l-4 border-l-emerald-600">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <div class="p-1 rounded-lg bg-emerald-200 text-emerald-900">
+                  <i data-lucide="file-pen" class="w-4 h-4 text-emerald-800"></i>
+                </div>
+                <div>
+                  <span class="font-extrabold text-emerald-950 text-xs block tracking-tight">Defensive Charting Directive</span>
+                  <span class="text-[10px] text-emerald-700 font-medium">Verbatim phrase to document in clinical EMR records</span>
+                </div>
+              </div>
+              <button class="btn-copy-charting px-3.5 py-1.5 rounded-xl bg-white hover:bg-emerald-100 border border-emerald-300 text-emerald-950 font-bold text-xs transition shadow-xs flex items-center gap-1.5" data-charting="${encodeURIComponent(c.defensiveChartingDirective)}">
+                <i data-lucide="copy" class="w-3.5 h-3.5 text-emerald-700"></i>
+                <span>Copy Chart Directive</span>
+              </button>
+            </div>
+            <pre class="whitespace-pre-wrap font-sans text-xs text-emerald-950 leading-relaxed bg-white p-3.5 rounded-xl border border-emerald-200 shadow-xs select-all italic font-medium">“${c.defensiveChartingDirective}”</pre>
+            <div class="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+              <span class="font-mono font-semibold">Statute: ${c.statutoryRef}</span>
+              <span class="text-emerald-800 font-bold">Category: ${c.category}</span>
+            </div>
+          </div>
+
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+
+  container.querySelectorAll('.btn-copy-charting').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = decodeURIComponent(btn.getAttribute('data-charting'));
+      navigator.clipboard.writeText(text).then(() => {
+        btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-700"></i><span>Copied!</span>`;
+        if (window.lucide) window.lucide.createIcons();
+        setTimeout(() => {
+          btn.innerHTML = `<i data-lucide="copy" class="w-3.5 h-3.5 text-emerald-700"></i><span>Copy Chart Directive</span>`;
+          if (window.lucide) window.lucide.createIcons();
+        }, 2000);
+      });
+    });
+  });
 }
 
 // ==========================================

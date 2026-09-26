@@ -11,7 +11,7 @@ import { DEPOSITION_CARDINAL_RULES, REPTILE_THEORY_COUNTERMEASURES, MOCK_DEPOSIT
 import { SHAM_PEER_REVIEW_FACTORS, SUMMARY_SUSPENSION_PLAYBOOK, NPDB_REPORTING_MATRIX } from '../data/peer_review.js';
 import { WMC_PHASES, WMC_RESPONSE_RULES, WMC_PHRASE_DISRUPTER, WMC_SANCTION_HIERARCHY } from '../data/wmc_defense.js';
 import { MALPRACTICE_LITIGATION_STAGES, MALPRACTICE_INSURANCE_TACTICS } from '../data/malpractice_timeline.js';
-import { calculateFMVMetrics, calculateMVIScore, calculateShamScore, sanitizePHI, RISK_QUESTIONS, analyzeContractText, CONTRACT_CLAUSE_RULES, SAMPLE_HOSPITAL_CONTRACT } from '../app.js';
+import { calculateFMVMetrics, calculateMVIScore, calculateShamScore, sanitizePHI, RISK_QUESTIONS, analyzeContractText, CONTRACT_CLAUSE_RULES, SAMPLE_HOSPITAL_CONTRACT, findPrecedentCases, MALPRACTICE_PRECEDENTS } from '../app.js';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -167,6 +167,45 @@ const cleanAnalysis = analyzeContractText(cleanContract);
 assert(cleanAnalysis.overallGrade === 'A', 'Clean contract with protective terms graded A');
 assert(cleanAnalysis.flaggedCount === 0, 'Clean contract triggers 0 predatory trap flags');
 console.log('  Physician contract audit and redlining engine verified.\n');
+
+// 9. AI MEDICOLEGAL PRECEDENT CASE FINDER TESTS
+console.log('▶ [TEST GROUP 9] AI Medicolegal Precedent Case Finder & Defensive Strategy Radar');
+assert(MALPRACTICE_PRECEDENTS.length >= 8, 'Caselaw database contains at least 8 landmark/contemporary precedents');
+
+const jurisdictions = Array.from(new Set(MALPRACTICE_PRECEDENTS.map(c => c.jurisdiction)));
+assert(jurisdictions.includes('WA'), 'Includes Washington State (WA) malpractice caselaw');
+assert(jurisdictions.includes('OR'), 'Includes Oregon (OR) malpractice caselaw');
+assert(jurisdictions.includes('CA'), 'Includes California (CA) malpractice caselaw');
+assert(jurisdictions.includes('NY'), 'Includes New York (NY) malpractice caselaw');
+
+// Test empty search
+const emptyMatches = findPrecedentCases('');
+assert(emptyMatches.length === 0, 'Empty clinical query returns 0 matches');
+
+// Test Dural Tear search
+const duralQuery = "Patient underwent L4-L5 lumbar discectomy, sustained an incidental dural tear and CSF leak with revision surgery. Plaintiff alleging lack of informed consent.";
+const duralMatches = findPrecedentCases(duralQuery, 'WA');
+assert(duralMatches.length > 0, 'Dural tear query returns relevant precedent cases');
+assert(duralMatches[0].id === 'case-wa-dural-tear', 'Top match for dural tear is Keen v. MultiCare (Known Risk Doctrine)');
+assert(duralMatches[0].defensiveChartingDirective.includes('Valsalva'), 'Precedent contains operative defensive charting directive');
+assert(duralMatches[0].defenseStrategy.length > 30, 'Precedent contains substantive standard of care defense strategy');
+
+// Test Cauda Equina search
+const caudaQuery = "Emergency department presentation with acute back pain, urinary retention, saddle anesthesia, and delayed decompression.";
+const caudaMatches = findPrecedentCases(caudaQuery, 'ALL');
+assert(caudaMatches.some(c => c.id === 'case-wa-cauda-equina'), 'Identified cauda equina diagnostic timing precedent');
+
+// Test Pedicle Screw breach search
+const screwQuery = "L4-S1 posterior fusion with pedicle screw breach contacting nerve root and revision surgery.";
+const screwMatches = findPrecedentCases(screwQuery, 'CA');
+assert(screwMatches.some(c => c.id === 'case-ca-pedicle-screw-breach'), 'Identified California pedicle screw instrumentation precedent');
+
+// Test Retained Sponge / Res Ipsa search
+const spongeQuery = "Retained laparotomy sponge discovered 3 months after open abdominal surgery despite correct nurse count.";
+const spongeMatches = findPrecedentCases(spongeQuery, 'NY');
+assert(spongeMatches.some(c => c.id === 'case-ny-retained-sponge-foreign-object'), 'Identified New York Kambat v. St. Francis Res Ipsa precedent');
+
+console.log('  Medicolegal precedent search and defensive charting engine verified.\n');
 
 console.log('====================================================');
 console.log(`🎯 TEST SUMMARY: ${passedTests}/${totalTests} TESTS PASSED WITH ZERO ERRORS (100%)`);

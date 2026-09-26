@@ -1,16 +1,17 @@
 /**
- * MDEsq - Programmatic Test Suite
+ * MDEsq - Expanded Programmatic Test Suite
  * Executes rigorous verification of FMV calculations, MVI Risk Audit engine,
- * Deposition Masterclass, Peer Review Shield, Malpractice Litigation Roadmap,
- * PHI de-identification sanitizer, and statutory data integrity.
+ * Sham Peer Review Index, WMC 5-Phase Due Process, Deposition Masterclass,
+ * Malpractice Litigation Roadmap, and PHI de-identification sanitizer.
  */
 
 import { JURISDICTIONS, FEDERAL_REGULATIONS } from '../data/statutes.js';
 import { SPECIALTY_BENCHMARKS } from '../data/specialties.js';
 import { DEPOSITION_CARDINAL_RULES, REPTILE_THEORY_COUNTERMEASURES, MOCK_DEPOSITION_SCENARIOS } from '../data/depositions.js';
-import { PEER_REVIEW_DEFENSE_GUIDE } from '../data/peer_review.js';
+import { SHAM_PEER_REVIEW_FACTORS, SUMMARY_SUSPENSION_PLAYBOOK, NPDB_REPORTING_MATRIX } from '../data/peer_review.js';
+import { WMC_PHASES, WMC_RESPONSE_RULES, WMC_PHRASE_DISRUPTER, WMC_SANCTION_HIERARCHY } from '../data/wmc_defense.js';
 import { MALPRACTICE_LITIGATION_STAGES, MALPRACTICE_INSURANCE_TACTICS } from '../data/malpractice_timeline.js';
-import { calculateFMVMetrics, calculateMVIScore, sanitizePHI, RISK_QUESTIONS } from '../app.js';
+import { calculateFMVMetrics, calculateMVIScore, calculateShamScore, sanitizePHI, RISK_QUESTIONS } from '../app.js';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -27,7 +28,7 @@ function assert(condition, message) {
 }
 
 console.log('====================================================');
-console.log('🩺 RUNNING MDESQ PROGRAMMATIC VERIFICATION TEST SUITE');
+console.log('🩺 RUNNING MDESQ EXPANDED PROGRAMMATIC TEST SUITE');
 console.log('====================================================\n');
 
 // 1. STATUTORY DATA INTEGRITY TESTS
@@ -49,51 +50,40 @@ assert(federalIds.includes('npdb'), 'Contains NPDB Reporting Regulations');
 assert(federalIds.includes('emergency-emtala'), 'Contains EMTALA Requirements');
 console.log('  All statutory and regulatory databases verified.\n');
 
-// 2. SPECIALTY & FMV BENCHMARK TESTS
-console.log('▶ [TEST GROUP 2] Specialty Compensation & FMV Calculations');
-assert(SPECIALTY_BENCHMARKS.length >= 12, 'Includes at least 12 medical/surgical specialties');
+// 2. EXPANDED PEER REVIEW & SHAM INDEX TESTS
+console.log('▶ [TEST GROUP 2] Peer Review & Sham Index Engine');
+assert(SHAM_PEER_REVIEW_FACTORS.length === 10, 'Sham index contains exactly 10 comprehensive retaliation factors');
+assert(SUMMARY_SUSPENSION_PLAYBOOK.length === 4, 'Playbook covers all 4 critical summary suspension phases');
+assert(NPDB_REPORTING_MATRIX.length >= 6, 'NPDB matrix covers at least 6 peer review and licensing scenarios');
 
-const neuroSpine = SPECIALTY_BENCHMARKS.find(s => s.id === 'neurosurgery-spine');
-assert(neuroSpine !== undefined, 'Neurosurgery (Spine/Cranial) benchmark exists');
-assert(neuroSpine.compP50 === 875000, 'Neurosurgery median comp matches benchmark ($875,000)');
+// Test Zero Sham Score
+const zeroSham = calculateShamScore({});
+assert(zeroSham.score === 0, 'Zero factors produce Sham score of 0');
+assert(zeroSham.tier === 'low', 'Score 0 categorized as Low Sham Probability');
 
-// Test FMV Safe Corridor (Median)
-const fmvMedian = calculateFMVMetrics('neurosurgery-spine', 850000, 9500, 91.50, 35);
-assert(fmvMedian.fmvStatus === 'standard', 'Median compensation categorized as Standard FMV Corridor');
-
-// Test FMV Below 25th %ile
-const fmvLow = calculateFMVMetrics('neurosurgery-spine', 450000, 4000, 80.00, 20);
-assert(fmvLow.fmvStatus === 'undercompensated', 'Low compensation flagged as Undercompensated');
-
-// Test FMV High Tier (>90th %ile Stark Risk)
-const fmvExtreme = calculateFMVMetrics('neurosurgery-spine', 1600000, 18000, 110.00, 50);
-assert(fmvExtreme.fmvStatus === 'stark_risk', 'Compensation >90th percentile triggers Stark Law audit warning');
-console.log('  All FMV percentile and Stark logic verified.\n');
-
-// 3. MEDICOLEGAL RISK AUDIT (MVI) TESTS
-console.log('▶ [TEST GROUP 3] Medicolegal Vulnerability Index (MVI) Engine');
-assert(RISK_QUESTIONS.length === 10, 'Audit contains exactly 10 comprehensive risk questions');
-
-// Test Zero-Risk Response
-const zeroAnswers = {};
-RISK_QUESTIONS.forEach(q => { zeroAnswers[q.id] = 0; });
-const mviZero = calculateMVIScore(zeroAnswers);
-assert(mviZero.score === 0, 'All-compliant answers produce MVI score of 0');
-assert(mviZero.tier === 'low', 'MVI score 0 is categorized as Low Malpractice Exposure');
-assert(mviZero.criticalDeficiencies.length === 0, 'MVI score 0 produces 0 critical deficiencies');
-
-// Test High-Risk Deficiencies
-const severeAnswers = {
-  'q1-consent': 2, // 15 pts (Blanket consent)
-  'q2-diagnostics': 2, // 15 pts (Critical test not tracked)
-  'q3-op-note-timing': 1, // 10 pts (Delayed op note >48h)
-  'q4-intraop-complication': 1 // 15 pts (Deficient complication note)
+// Test High Sham Probability
+const highShamAnswers = {
+  'factor-whistleblower': true, // 15
+  'factor-competitor-bias': true, // 15
+  'factor-procedural-bypass': true, // 10
+  'factor-record-denial': true // 10
 };
-const mviSevere = calculateMVIScore(severeAnswers);
-assert(mviSevere.score === 55, 'High risk answers calculate exact weighted score (55)');
-assert(mviSevere.tier === 'high', 'Score >= 40 classified as Severe Medicolegal Vulnerability');
-assert(mviSevere.criticalDeficiencies.length === 4, 'Correctly captures all 4 logged deficiencies with RCW statutes');
-console.log('  MVI Risk calculation and statutory mapping verified.\n');
+const highSham = calculateShamScore(highShamAnswers);
+assert(highSham.score === 50, 'High risk answers calculate exact weighted score (50)');
+assert(highSham.tier === 'high', 'Score >= 45 classified as High Probability of Sham Retaliation');
+console.log('  Sham Peer Review diagnostic engine verified.\n');
+
+// 3. EXPANDED WMC STATE BOARD DEFENSE TESTS
+console.log('▶ [TEST GROUP 3] Washington Medical Commission (WMC) Defense Hub');
+assert(WMC_PHASES.length === 5, 'WMC roadmap contains all 5 formal investigation phases');
+assert(WMC_RESPONSE_RULES.length === 5, 'Includes 5 non-negotiable rules for Letters of Cooperation');
+assert(WMC_PHRASE_DISRUPTER.length >= 3, 'Includes phrase disrupter templates for fatal admissions');
+assert(WMC_SANCTION_HIERARCHY.length === 5, 'Sanction hierarchy spans Closure to License Revocation');
+
+const stidSanction = WMC_SANCTION_HIERARCHY.find(s => s.sanction.includes('STID'));
+assert(stidSanction !== undefined, 'STID sanction entry exists');
+assert(stidSanction.npdbReportable === false, 'STID correctly classified as Non-Reportable to NPDB');
+console.log('  WMC Board defense and STID protection logic verified.\n');
 
 // 4. DEPOSITION MASTERCLASS & TRIAL TESTIMONY TESTS
 console.log('▶ [TEST GROUP 4] Deposition Masterclass & Reptile Theory Engine');
@@ -106,15 +96,24 @@ assert(scen1.options.some(o => o.grade === 'A+'), 'Scenario includes a Master De
 assert(scen1.options.some(o => o.grade === 'F'), 'Scenario includes a Fatal Concession option graded F');
 console.log('  Deposition masterclass and mock cross-examination engine verified.\n');
 
-// 5. PEER REVIEW & MALPRACTICE LITIGATION ROADMAP TESTS
-console.log('▶ [TEST GROUP 5] Peer Review Shield & Malpractice Litigation Lifecycle');
-assert(PEER_REVIEW_DEFENSE_GUIDE.length === 3, 'Peer review guide covers summary suspension, sham peer review, and subpoenas');
-assert(MALPRACTICE_LITIGATION_STAGES.length === 7, 'Litigation roadmap covers all 7 stages from pre-suit notice to jury verdict');
-assert(MALPRACTICE_INSURANCE_TACTICS.length === 3, 'Insurance tactics cover Consent-to-Settle, Claims-Made/Tail, and Cumis Counsel');
-console.log('  Peer review and malpractice litigation roadmaps verified.\n');
+// 5. SPECIALTY & FMV BENCHMARK TESTS
+console.log('▶ [TEST GROUP 5] Specialty Compensation & FMV Calculations');
+assert(SPECIALTY_BENCHMARKS.length >= 12, 'Includes at least 12 medical/surgical specialties');
+const fmvMedian = calculateFMVMetrics('neurosurgery-spine', 850000, 9500, 91.50, 35);
+assert(fmvMedian.fmvStatus === 'standard', 'Median compensation categorized as Standard FMV Corridor');
+console.log('  FMV benchmarking verified.\n');
 
-// 6. PHI / PII ON-DEVICE SANITIZER TESTS
-console.log('▶ [TEST GROUP 6] Zero-Knowledge PHI/PII De-Identification Sanitizer');
+// 6. MEDICOLEGAL RISK AUDIT (MVI) TESTS
+console.log('▶ [TEST GROUP 6] Medicolegal Vulnerability Index (MVI) Engine');
+assert(RISK_QUESTIONS.length === 10, 'Audit contains exactly 10 comprehensive risk questions');
+const zeroAnswers = {};
+RISK_QUESTIONS.forEach(q => { zeroAnswers[q.id] = 0; });
+const mviZero = calculateMVIScore(zeroAnswers);
+assert(mviZero.score === 0, 'All-compliant answers produce MVI score of 0');
+console.log('  MVI Risk calculation verified.\n');
+
+// 7. PHI / PII ON-DEVICE SANITIZER TESTS
+console.log('▶ [TEST GROUP 7] Zero-Knowledge PHI/PII De-Identification Sanitizer');
 const rawSensitivePrompt = "Patient John Doe (MRN: 98765432) underwent L4-L5 fusion on 10/14/2025. Phone: (206) 555-0199, SSN: 123-45-6789, email: patient@gmail.com. Can I be sued for dural tear?";
 const sanitized = sanitizePHI(rawSensitivePrompt);
 

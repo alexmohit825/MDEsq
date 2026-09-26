@@ -1,24 +1,25 @@
 /**
  * MDEsq - Main Application Controller
  * High-performance, zero-dependency ES Module
- * Light Executive Theme & Interactive Chart Visualizers
+ * Light Executive Theme & Expanded Peer Review / WMC Modules
  */
 
 import { JURISDICTIONS, FEDERAL_REGULATIONS } from './data/statutes.js';
 import { SPECIALTY_BENCHMARKS } from './data/specialties.js';
 import { DEPOSITION_CARDINAL_RULES, REPTILE_THEORY_COUNTERMEASURES, MOCK_DEPOSITION_SCENARIOS } from './data/depositions.js';
-import { PEER_REVIEW_DEFENSE_GUIDE } from './data/peer_review.js';
+import { SHAM_PEER_REVIEW_FACTORS, SUMMARY_SUSPENSION_PLAYBOOK, NPDB_REPORTING_MATRIX } from './data/peer_review.js';
+import { WMC_PHASES, WMC_RESPONSE_RULES, WMC_PHRASE_DISRUPTER, WMC_SANCTION_HIERARCHY } from './data/wmc_defense.js';
 import { MALPRACTICE_LITIGATION_STAGES, MALPRACTICE_INSURANCE_TACTICS } from './data/malpractice_timeline.js';
 
 // Application State
 const state = {
   currentJurisdiction: 'WA',
-  currentTab: 'tab-depositions',
+  currentTab: 'tab-peer-review',
   selectedSpecialtyId: 'neurosurgery-spine',
   auditAnswers: {},
+  shamAnswers: {},
   apiKey: (typeof localStorage !== 'undefined' && localStorage.getItem('mdesq_gemini_key')) || '',
   currentMockDepIndex: 0,
-  selectedMockOption: null,
   fmvChart: null,
   chatHistory: []
 };
@@ -254,6 +255,41 @@ export function calculateMVIScore(answers) {
   };
 }
 
+// Sham Peer Review Score Calculator
+export function calculateShamScore(selectedFactors) {
+  let score = 0;
+  SHAM_PEER_REVIEW_FACTORS.forEach(f => {
+    if (selectedFactors[f.id]) {
+      score += f.weight;
+    }
+  });
+
+  let tier = 'low';
+  let tierLabel = 'Low Sham Probability (Standard Review)';
+  let tierNarrative = 'Current factors indicate standard clinical quality assurance review. Maintain factual cooperation and ensure peer review privilege under RCW 70.41.200.';
+  let badgeClass = 'emerald';
+
+  if (score >= 45) {
+    tier = 'high';
+    tierLabel = 'High Probability of Sham / Bad-Faith Retaliation';
+    tierNarrative = 'Multiple critical indicators of bad-faith economic retaliation or procedural bypass detected. Do NOT resign privileges. Retain private healthcare counsel immediately and demand an external independent academic review.';
+    badgeClass = 'rose';
+  } else if (score >= 20) {
+    tier = 'moderate';
+    tierLabel = 'Moderate Retaliation Concern (Elevated Vigilance)';
+    tierNarrative = 'Procedural anomalies detected. Scrutinize committee composition for competitor bias and demand complete unredacted EMR records under Medical Staff Bylaws.';
+    badgeClass = 'amber';
+  }
+
+  return {
+    score,
+    tier,
+    tierLabel,
+    tierNarrative,
+    badgeClass
+  };
+}
+
 // DOM Binding
 if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', () => {
@@ -263,10 +299,11 @@ if (typeof document !== 'undefined') {
 
     initNavigation();
     initJurisdictionSelector();
+    initPeerReviewShield();
+    initWMCBoardDefense();
     initDepositionMasterclass();
     initFMVCalculator();
     initRiskAudit();
-    initPeerReviewShield();
     initMalpracticeLitigation();
     initStatuteExplorer();
     initAICopilot();
@@ -282,7 +319,6 @@ function initNavigation() {
       const targetTabId = tab.getAttribute('data-tab');
       state.currentTab = targetTabId;
 
-      // Update tab styles for Light Mode
       tabs.forEach(t => {
         t.classList.remove('active-tab', 'text-emerald-700', 'bg-emerald-50', 'border-emerald-200');
         t.classList.add('text-slate-600');
@@ -290,7 +326,6 @@ function initNavigation() {
       tab.classList.add('active-tab', 'text-emerald-700', 'bg-emerald-50', 'border-emerald-200');
       tab.classList.remove('text-slate-600');
 
-      // Show target panel
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
       const targetPanel = document.getElementById(targetTabId);
       if (targetPanel) {
@@ -330,8 +365,189 @@ function updateJurisdictionContext() {
   renderStatutes();
 }
 
+// ========================================================
+// 1. EXPANDED PEER REVIEW & SUMMARY SUSPENSION SHIELD
+// ========================================================
+function initPeerReviewShield() {
+  renderShamFactors();
+  renderSuspensionPlaybook();
+  renderNPDBMatrix();
+}
+
+function renderShamFactors() {
+  const container = document.getElementById('sham-factors-container');
+  if (!container) return;
+
+  container.innerHTML = SHAM_PEER_REVIEW_FACTORS.map(f => `
+    <label class="flex items-start space-x-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition text-xs shadow-xs">
+      <input type="checkbox" data-factor-id="${f.id}" class="sham-factor-cb mt-1 text-blue-600 focus:ring-blue-500 rounded">
+      <div class="space-y-1">
+        <span class="font-bold text-slate-900 block">${f.title} (+${f.weight} pts)</span>
+        <p class="text-slate-600 leading-relaxed">${f.description}</p>
+        <span class="text-[11px] text-blue-700 block font-medium">📋 Key Evidence: ${f.evidenceRequired}</span>
+      </div>
+    </label>
+  `).join('');
+
+  container.addEventListener('change', (e) => {
+    if (e.target.classList.contains('sham-factor-cb')) {
+      const factorId = e.target.getAttribute('data-factor-id');
+      state.shamAnswers[factorId] = e.target.checked;
+      updateShamScore();
+    }
+  });
+}
+
+function updateShamScore() {
+  const res = calculateShamScore(state.shamAnswers);
+
+  const badge = document.getElementById('sham-score-badge');
+  if (badge) {
+    badge.textContent = `Score: ${res.score} / 100 (${res.tier.toUpperCase()})`;
+    badge.className = `px-3 py-1 rounded-xl bg-${res.badgeClass}-50 text-${res.badgeClass}-800 font-mono font-bold text-xs border border-${res.badgeClass}-200`;
+  }
+
+  const pill = document.getElementById('sham-tier-pill');
+  if (pill) {
+    pill.textContent = res.tierLabel;
+    pill.className = `text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-${res.badgeClass}-100 text-${res.badgeClass}-800`;
+  }
+
+  const narrative = document.getElementById('sham-tier-narrative');
+  if (narrative) narrative.textContent = res.tierNarrative;
+}
+
+function renderSuspensionPlaybook() {
+  const container = document.getElementById('suspension-playbook-container');
+  if (!container) return;
+
+  container.innerHTML = SUMMARY_SUSPENSION_PLAYBOOK.map(p => `
+    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 hover:border-${p.color}-300 transition shadow-xs">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-slate-900">${p.dayRange}</span>
+        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-${p.color}-100 text-${p.color}-800 font-mono font-bold">${p.phaseTitle}</span>
+      </div>
+      <ul class="space-y-1.5 pt-1 text-xs text-slate-700">
+        ${p.criticalActions.map(action => `
+          <li class="flex items-start gap-1.5">
+            <span class="text-${p.color}-600 font-bold">•</span>
+            <span class="leading-relaxed">${action}</span>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  `).join('');
+}
+
+function renderNPDBMatrix() {
+  const tbody = document.getElementById('npdb-table-body');
+  if (!tbody) return;
+
+  tbody.innerHTML = NPDB_REPORTING_MATRIX.map(m => `
+    <tr class="hover:bg-slate-50 transition">
+      <td class="py-3 px-3 font-semibold text-slate-900">
+        ${m.action}
+        <span class="block text-[11px] text-slate-500 font-normal mt-0.5">${m.consequence}</span>
+      </td>
+      <td class="py-3 px-3 whitespace-nowrap">
+        ${m.reportable 
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">🚨 MANDATORY REPORT</span>' 
+          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">🛡️ NO REPORT</span>'}
+      </td>
+      <td class="py-3 px-3 font-mono text-[11px] text-slate-600">${m.authority}</td>
+    </tr>
+  `).join('');
+}
+
+// ========================================================
+// 2. EXPANDED WMC STATE BOARD DEFENSE CENTER
+// ========================================================
+function initWMCBoardDefense() {
+  renderWMCPhases();
+  renderWMCResponseRules();
+  renderWMCPhrases();
+  renderWMCSanctionsTable();
+}
+
+function renderWMCPhases() {
+  const container = document.getElementById('wmc-phases-container');
+  if (!container) return;
+
+  container.innerHTML = WMC_PHASES.map(p => `
+    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 hover:border-amber-400 transition shadow-xs">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-slate-900 flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-mono font-bold">${p.phase}</span>
+          ${p.title}
+        </span>
+        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-amber-900 font-mono font-bold">${p.duration}</span>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">${p.description}</p>
+      <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs text-amber-900 shadow-xs space-y-1">
+        <span class="font-bold text-slate-900 block text-[11px]">🛡️ Tactical Priority:</span>
+        <p class="text-slate-700 leading-relaxed">${p.tacticalPriority}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderWMCResponseRules() {
+  const container = document.getElementById('wmc-response-rules-container');
+  if (!container) return;
+
+  container.innerHTML = WMC_RESPONSE_RULES.map(r => `
+    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 shadow-xs">
+      <div class="flex items-center space-x-2">
+        <span class="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-mono font-bold">${r.ruleNum}</span>
+        <h4 class="text-xs font-bold text-slate-900">${r.title}</h4>
+      </div>
+      <p class="text-xs text-slate-700">${r.summary}</p>
+      <p class="text-[11px] text-slate-500 italic pt-0.5">${r.rationale}</p>
+    </div>
+  `).join('');
+}
+
+function renderWMCPhrases() {
+  const container = document.getElementById('wmc-phrases-container');
+  if (!container) return;
+
+  container.innerHTML = WMC_PHRASE_DISRUPTER.map(pd => `
+    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
+      <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
+        <strong class="text-rose-900 block text-[11px]">❌ Fatal Admission Phrase:</strong>
+        "${pd.fatalPhrase}"
+      </div>
+      <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+        <strong class="text-emerald-900 block text-[11px]">🛡️ Master Defense Response:</strong>
+        "${pd.masterResponse}"
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderWMCSanctionsTable() {
+  const tbody = document.getElementById('wmc-sanctions-table-body');
+  if (!tbody) return;
+
+  tbody.innerHTML = WMC_SANCTION_HIERARCHY.map(s => `
+    <tr class="hover:bg-slate-50 transition">
+      <td class="py-3 px-3 font-semibold text-slate-900">
+        ${s.sanction}
+        <span class="block text-[11px] text-slate-500 font-normal mt-0.5">${s.clinicalImpact}</span>
+      </td>
+      <td class="py-3 px-3 text-xs text-slate-700 font-medium">${s.severity}</td>
+      <td class="py-3 px-3 font-mono text-[11px] text-slate-600">${s.publicRecord}</td>
+      <td class="py-3 px-3 whitespace-nowrap">
+        ${s.npdbReportable 
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">YES (Reportable)</span>' 
+          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">NO (Shielded)</span>'}
+      </td>
+    </tr>
+  `).join('');
+}
+
 // ==========================================
-// 1. DEPOSITION MASTERCLASS LOGIC
+// 3. DEPOSITION MASTERCLASS LOGIC
 // ==========================================
 function initDepositionMasterclass() {
   renderCardinalRules();
@@ -480,7 +696,7 @@ function showMockFeedback(scen, optIdx) {
 }
 
 // ==========================================
-// 2. FMV CALCULATOR & CHART.JS SETUP
+// 4. FMV CALCULATOR & CHART.JS SETUP
 // ==========================================
 function initFMVCalculator() {
   const select = document.getElementById('fmv-specialty-select');
@@ -615,7 +831,7 @@ function updateFMVChart() {
 }
 
 // ==========================================
-// 3. MEDICOLEGAL RISK AUDIT SETUP
+// 5. MEDICOLEGAL RISK AUDIT SETUP
 // ==========================================
 function initRiskAudit() {
   const container = document.getElementById('risk-questions-container');
@@ -704,35 +920,7 @@ function updateRiskAuditResults() {
 }
 
 // ==========================================
-// 4. PEER REVIEW & SUSPENSION SHIELD
-// ==========================================
-function initPeerReviewShield() {
-  const container = document.getElementById('peer-review-content-container');
-  if (!container) return;
-
-  container.innerHTML = PEER_REVIEW_DEFENSE_GUIDE.map(item => `
-    <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between shadow-xs">
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-[10px] px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-mono font-bold">${item.urgency}</span>
-        </div>
-        <h3 class="text-sm font-bold text-slate-900">${item.topic}</h3>
-        <span class="text-[11px] text-slate-500 block font-mono font-medium">${item.statutoryBasis}</span>
-        <ul class="space-y-2 pt-2 text-xs text-slate-700">
-          ${item.protocol.map(p => `
-            <li class="flex items-start gap-2">
-              <span class="text-blue-600 font-bold">•</span>
-              <span class="leading-relaxed">${p}</span>
-            </li>
-          `).join('')}
-        </ul>
-      </div>
-    </div>
-  `).join('');
-}
-
-// ==========================================
-// 5. MALPRACTICE LITIGATION ROADMAP
+// 6. MALPRACTICE LITIGATION ROADMAP
 // ==========================================
 function initMalpracticeLitigation() {
   const stagesContainer = document.getElementById('malpractice-stages-container');
@@ -767,7 +955,7 @@ function initMalpracticeLitigation() {
 }
 
 // ==========================================
-// 6. STATUTE & PRECEDENT EXPLORER
+// 7. STATUTE & PRECEDENT EXPLORER
 // ==========================================
 function initStatuteExplorer() {
   renderStatutes();
@@ -850,7 +1038,7 @@ function renderStatutes(filterQuery = '') {
 }
 
 // ==========================================
-// 7. AI COPILOT SETUP WITH PHI SANITIZATION
+// 8. AI COPILOT SETUP WITH PHI SANITIZATION
 // ==========================================
 function initAICopilot() {
   const form = document.getElementById('ai-chat-form');
@@ -937,6 +1125,20 @@ Include statutory citations (RCW/WAC/Stark) where relevant. Include a brief educ
 function generateOfflineMedicolegalResponse(query) {
   const q = query.toLowerCase();
 
+  if (q.includes('peer review') || q.includes('suspension') || q.includes('sham') || q.includes('npdb')) {
+    return `### 🏥 Hospital Peer Review & Summary Suspension Strategy
+1. **Never Voluntarily Resign:** Resigning while under inquiry triggers a mandatory adverse report to the NPDB that permanently affects licensing in all 50 states.
+2. **The 30-Day Cliff:** Negotiate an interim agreement or leave of absence before Day 30 of suspension to prevent mandatory NPDB reporting.
+3. **Sham Peer Review Defense:** If direct competitors are on the committee or bylaws were bypassed, demand an out-of-state external academic review under HCQIA (42 U.S.C. § 11112).`;
+  }
+
+  if (q.includes('wmc') || q.includes('board') || q.includes('letter of cooperation') || q.includes('complaint')) {
+    return `### 🏛️ Washington Medical Commission (WMC) Defense Guidance
+1. **The Certified Record Rule:** Never draft a response without reviewing the complete certified medical record and EMR audit trail.
+2. **Objective Phrasing:** Frame the complication as an unavoidable, recognized procedural risk rather than a failure of standard of care.
+3. **Seek a STID Resolution:** Advocate for a non-disciplinary Stipulation to Informal Disposition (RCW 18.130.172) to protect your public licensing record and prevent NPDB reporting.`;
+  }
+
   if (q.includes('deposition') || q.includes('reptile') || q.includes('testimony') || q.includes('cross-exam')) {
     return `### 🎙️ Deposition & Cross-Examination Defense Guidance
 1. **The 3-Second Pause:** Wait 3 seconds before answering to allow defense counsel to object.
@@ -944,25 +1146,11 @@ function generateOfflineMedicolegalResponse(query) {
 3. **Never Speculate:** If you do not remember an encounter from years ago: *"I do not recall independently, but my customary practice is reflected in my contemporaneous note."*`;
   }
 
-  if (q.includes('board') || q.includes('wmc') || q.includes('complaint') || q.includes('investigation')) {
-    return `### 🛡️ Washington Medical Commission (WMC) Defense Guidance
-1. **Do NOT Respond Unrepresented:** Under RCW 18.130 (Uniform Disciplinary Act), your initial written response becomes part of the permanent record. Contact your malpractice carrier to assign health law counsel immediately.
-2. **Obtain the Complete Certified Record:** Never rely on memory. Demand the complete medical record, nursing notes, and EMR audit trail before writing a response.
-3. **Stipulation to Informal Disposition (STID):** If allegations have merit, seek a non-disciplinary STID under RCW 18.130.172 to prevent mandatory reporting to the National Practitioner Data Bank (NPDB).`;
-  }
-
-  if (q.includes('non-compete') || q.includes('restrictive covenant') || q.includes('radius')) {
-    return `### 📜 Washington Non-Compete Law (RCW 49.62)
-1. **Statutory Salary Floor:** In Washington, non-compete agreements are void against employees earning less than the statutory inflation-adjusted threshold (approx. $120,559+/yr).
-2. **18-Month Presumption Ceiling:** Any covenant exceeding 18 months post-termination is rebuttably presumed unreasonable and unenforceable.
-3. **Mandatory Attorney Fees (RCW 49.62.080):** If an employer attempts to enforce an unlawful non-compete against you, the court *must* award statutory damages plus your reasonable attorney fees.`;
-  }
-
   return `### ⚖️ MDEsq Strategic Medicolegal Analysis
-Under Washington State Law (RCW 7.70 & RCW 18.71):
-* **Standard of Care (RCW 7.70.040):** Standard of care is evaluated based on what an ordinarily prudent healthcare provider in the same field in Washington would do under similar circumstances.
-* **Informed Consent (RCW 7.70.050):** Always ensure contemporaneous documentation of specific material surgical risks, alternative medical modalities, and patient choice.
-* **Privileged Peer Review (RCW 70.41.200):** Maintain all quality reviews and complication discussions within formal QA channels, never in the discoverable patient chart.`;
+Under Washington State Law (RCW 7.70, RCW 18.71, RCW 18.130):
+* **Standard of Care (RCW 7.70.040):** Evaluated against an ordinarily prudent health care provider in Washington under similar clinical circumstances.
+* **Informed Consent (RCW 7.70.050):** Requires documenting specific material surgical risks and non-surgical alternatives.
+* **QA Privilege (RCW 70.41.200):** Peer review discussions and QA incident reports are strictly privileged from civil discovery.`;
 }
 
 function appendChatMessage(role, text) {

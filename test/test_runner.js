@@ -11,7 +11,7 @@ import { DEPOSITION_CARDINAL_RULES, REPTILE_THEORY_COUNTERMEASURES, MOCK_DEPOSIT
 import { SHAM_PEER_REVIEW_FACTORS, SUMMARY_SUSPENSION_PLAYBOOK, NPDB_REPORTING_MATRIX } from '../data/peer_review.js';
 import { WMC_PHASES, WMC_RESPONSE_RULES, WMC_PHRASE_DISRUPTER, WMC_SANCTION_HIERARCHY } from '../data/wmc_defense.js';
 import { MALPRACTICE_LITIGATION_STAGES, MALPRACTICE_INSURANCE_TACTICS } from '../data/malpractice_timeline.js';
-import { calculateFMVMetrics, calculateMVIScore, calculateShamScore, sanitizePHI, RISK_QUESTIONS } from '../app.js';
+import { calculateFMVMetrics, calculateMVIScore, calculateShamScore, sanitizePHI, RISK_QUESTIONS, analyzeContractText, CONTRACT_CLAUSE_RULES, SAMPLE_HOSPITAL_CONTRACT } from '../app.js';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -125,6 +125,48 @@ assert(!sanitized.includes('123-45-6789'), 'SSN redacted');
 assert(!sanitized.includes('patient@gmail.com'), 'Email address redacted');
 assert(sanitized.includes('Can I be sued for dural tear?'), 'Clinical legal query preserved intact');
 console.log('  PHI sanitizer successfully stripped 100% of sensitive identifiers.\n');
+
+// 8. PHYSICIAN CONTRACT DOCUMENT ANALYZER & REDLINE ENGINE TESTS
+console.log('▶ [TEST GROUP 8] Physician Contract Document Analyzer & Redline Engine');
+assert(CONTRACT_CLAUSE_RULES.length === 7, 'Includes exactly 7 core predatory physician contract audit rules');
+
+// Test empty text
+const emptyAnalysis = analyzeContractText('');
+assert(emptyAnalysis.totalClausesAnalyzed === 0, 'Empty contract text handles gracefully with 0 analyzed');
+assert(emptyAnalysis.overallGrade === 'N/A', 'Empty contract returns Grade N/A');
+
+// Test sample predatory hospital contract
+const sampleAnalysis = analyzeContractText(SAMPLE_HOSPITAL_CONTRACT);
+assert(sampleAnalysis.flaggedCount === 7, 'Sample hospital agreement triggers all 7 flagged trap clauses');
+assert(sampleAnalysis.overallGrade === 'F', 'Sample hospital agreement correctly graded F (Severe Risk)');
+assert(sampleAnalysis.gradeColor === 'rose', 'Grade F flagged with rose risk indicator');
+
+// Verify specific clause redline details
+const nonCompeteFlag = sampleAnalysis.flaggedClauses.find(c => c.id === 'clause-non-compete');
+assert(nonCompeteFlag !== undefined, 'Non-compete clause flagged');
+assert(nonCompeteFlag.statutoryBasis.includes('RCW 49.62'), 'Non-compete redline cites Washington RCW 49.62');
+assert(nonCompeteFlag.recommendedRedline.includes('STRIKE NON-COMPETE'), 'Non-compete redline provides strike-and-replace language');
+assert(nonCompeteFlag.negotiationScript.length > 50, 'Non-compete contains verbatim physician negotiation talking points');
+
+const tailFlag = sampleAnalysis.flaggedClauses.find(c => c.id === 'clause-tail-insurance');
+assert(tailFlag !== undefined, '100% tail insurance burden flagged as Critical risk');
+assert(tailFlag.riskSeverity === 'Critical', 'Tail insurance correctly categorized with Critical severity');
+
+const indemnityFlag = sampleAnalysis.flaggedClauses.find(c => c.id === 'clause-indemnification');
+assert(indemnityFlag !== undefined, 'Physician indemnification clause flagged');
+assert(indemnityFlag.statutoryBasis.includes('Respondeat Superior'), 'Indemnification redline cites Respondeat Superior employer liability');
+
+const callFlag = sampleAnalysis.flaggedClauses.find(c => c.id === 'clause-uncompensated-call');
+assert(callFlag !== undefined, 'Uncompensated emergency call flagged');
+assert(callFlag.statutoryBasis.includes('EMTALA'), 'Call stipend redline cites EMTALA and Stark Law');
+
+// Test favorable/clean contract
+const cleanContract = `PHYSICIAN EMPLOYMENT AGREEMENT
+Hospital provides occurrence malpractice insurance covering full scope of practice. Either party may terminate with 90 days notice. Call coverage is compensated at $2,000 per shift. Physician shall retain full mobility upon termination.`;
+const cleanAnalysis = analyzeContractText(cleanContract);
+assert(cleanAnalysis.overallGrade === 'A', 'Clean contract with protective terms graded A');
+assert(cleanAnalysis.flaggedCount === 0, 'Clean contract triggers 0 predatory trap flags');
+console.log('  Physician contract audit and redlining engine verified.\n');
 
 console.log('====================================================');
 console.log(`🎯 TEST SUMMARY: ${passedTests}/${totalTests} TESTS PASSED WITH ZERO ERRORS (100%)`);

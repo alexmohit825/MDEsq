@@ -4,6 +4,7 @@
   "description": "MDEsq - Physician Medicolegal, Contract & Board Defense Radar",
   "type": "module",
   "scripts": {
+    "start": "node server.js",
     "test": "node test/test_runner.js"
   },
   "author": "A. Alex Mohit",

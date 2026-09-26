@@ -1,7 +1,7 @@
 /**
  * MDEsq - Main Application Controller
  * High-performance, zero-dependency ES Module
- * Light Executive Theme & Expanded Peer Review / WMC Modules
+ * Light Executive Theme & Contract Document Redline Engine
  */
 
 import { JURISDICTIONS, FEDERAL_REGULATIONS } from './data/statutes.js';
@@ -10,17 +10,20 @@ import { DEPOSITION_CARDINAL_RULES, REPTILE_THEORY_COUNTERMEASURES, MOCK_DEPOSIT
 import { SHAM_PEER_REVIEW_FACTORS, SUMMARY_SUSPENSION_PLAYBOOK, NPDB_REPORTING_MATRIX } from './data/peer_review.js';
 import { WMC_PHASES, WMC_RESPONSE_RULES, WMC_PHRASE_DISRUPTER, WMC_SANCTION_HIERARCHY } from './data/wmc_defense.js';
 import { MALPRACTICE_LITIGATION_STAGES, MALPRACTICE_INSURANCE_TACTICS } from './data/malpractice_timeline.js';
+export { SAMPLE_HOSPITAL_CONTRACT, CONTRACT_CLAUSE_RULES, analyzeContractText } from './data/contract_analyzer.js';
+import { SAMPLE_HOSPITAL_CONTRACT, CONTRACT_CLAUSE_RULES, analyzeContractText } from './data/contract_analyzer.js';
 
 // Application State
 const state = {
   currentJurisdiction: 'WA',
-  currentTab: 'tab-peer-review',
+  currentTab: 'tab-fmv-contracts',
   selectedSpecialtyId: 'neurosurgery-spine',
   auditAnswers: {},
   shamAnswers: {},
   apiKey: (typeof localStorage !== 'undefined' && localStorage.getItem('mdesq_gemini_key')) || '',
   currentMockDepIndex: 0,
   fmvChart: null,
+  latestContractAnalysis: null,
   chatHistory: []
 };
 
@@ -150,7 +153,7 @@ export const RISK_QUESTIONS = [
   }
 ];
 
-// Zero-PII Sanitizer to scrub patient identifiers before AI processing
+// Zero-PII Sanitizer
 export function sanitizePHI(rawText) {
   if (!rawText) return '';
   return rawText
@@ -299,6 +302,7 @@ if (typeof document !== 'undefined') {
 
     initNavigation();
     initJurisdictionSelector();
+    initContractDocumentAnalyzer();
     initPeerReviewShield();
     initWMCBoardDefense();
     initDepositionMasterclass();
@@ -356,17 +360,260 @@ function updateJurisdictionContext() {
   const jur = JURISDICTIONS[state.currentJurisdiction] || JURISDICTIONS.WA;
   const fmvBadge = document.getElementById('state-badge-fmv');
   if (fmvBadge) fmvBadge.textContent = `${jur.abbr} Mode`;
-
-  const ncTag = document.getElementById('nc-enforceability-tag');
-  if (ncTag) {
-    ncTag.textContent = jur.nonCompeteStatus.substring(0, 32);
-  }
-
   renderStatutes();
 }
 
 // ========================================================
-// 1. EXPANDED PEER REVIEW & SUMMARY SUSPENSION SHIELD
+// 1. CONTRACT DOCUMENT ANALYZER & REDLINE ENGINE
+// ========================================================
+function initContractDocumentAnalyzer() {
+  const fileInput = document.getElementById('contract-file-input');
+  const textarea = document.getElementById('contract-raw-text');
+  const analyzeBtn = document.getElementById('btn-run-contract-analysis');
+  const loadSampleBtn = document.getElementById('btn-load-sample-contract');
+  const clearBtn = document.getElementById('btn-clear-contract-text');
+  const copyAllBtn = document.getElementById('btn-copy-all-redlines');
+
+  // Load Sample Hospital Contract
+  loadSampleBtn?.addEventListener('click', () => {
+    if (textarea) {
+      textarea.value = SAMPLE_HOSPITAL_CONTRACT;
+      runContractAnalysis(SAMPLE_HOSPITAL_CONTRACT);
+    }
+  });
+
+  // Clear button
+  clearBtn?.addEventListener('click', () => {
+    if (textarea) textarea.value = '';
+  });
+
+  // Analyze button
+  analyzeBtn?.addEventListener('click', () => {
+    const text = textarea?.value || '';
+    runContractAnalysis(text);
+  });
+
+  // File Upload Handler (PDF, DOCX, TXT)
+  fileInput?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileStatusTag = document.getElementById('file-status-tag');
+    const fileNameLabel = document.getElementById('file-name-label');
+    if (fileStatusTag && fileNameLabel) {
+      fileNameLabel.textContent = file.name;
+      fileStatusTag.classList.remove('hidden');
+    }
+
+    try {
+      const extractedText = await parseDocumentFile(file);
+      if (textarea) {
+        textarea.value = extractedText;
+        runContractAnalysis(extractedText);
+      }
+    } catch (err) {
+      alert(`Error reading document: ${err.message}`);
+    }
+  });
+
+  // Copy All Redlines Addendum
+  copyAllBtn?.addEventListener('click', () => {
+    if (!state.latestContractAnalysis || state.latestContractAnalysis.flaggedClauses.length === 0) {
+      alert('No redlines generated yet.');
+      return;
+    }
+
+    const addendum = state.latestContractAnalysis.flaggedClauses.map((c, i) => `
+=====================================================
+REDLINE AMENDMENT #${i + 1}: ${c.name.toUpperCase()}
+Statutory Standard: ${c.statutoryBasis}
+-----------------------------------------------------
+${c.recommendedRedline}
+
+PHYSICIAN TALKING POINTS:
+${c.negotiationScript}
+=====================================================
+    `).join('\n\n');
+
+    navigator.clipboard.writeText(addendum).then(() => {
+      copyAllBtn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Copied Full Addendum!`;
+      if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+      setTimeout(() => {
+        copyAllBtn.innerHTML = `<i data-lucide="copy" class="w-3.5 h-3.5 text-slate-600"></i> Copy Full Redline Addendum`;
+        if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+      }, 2500);
+    });
+  });
+
+  // Initial Sample Run
+  if (textarea && !textarea.value) {
+    textarea.value = SAMPLE_HOSPITAL_CONTRACT;
+    runContractAnalysis(SAMPLE_HOSPITAL_CONTRACT);
+  }
+}
+
+async function parseDocumentFile(file) {
+  const extension = file.name.split('.').pop().toLowerCase();
+
+  // 1. Text files
+  if (extension === 'txt') {
+    return await file.text();
+  }
+
+  // 2. Word .docx files via mammoth
+  if (extension === 'docx' || extension === 'doc') {
+    if (typeof mammoth !== 'undefined') {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      return result.value;
+    } else {
+      return await file.text();
+    }
+  }
+
+  // 3. PDF files via pdfjsLib
+  if (extension === 'pdf') {
+    if (typeof pdfjsLib !== 'undefined') {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        fullText += `\n--- Page ${i} ---\n` + pageText;
+      }
+      return fullText;
+    } else {
+      throw new Error('PDF parsing library loading. Please paste text directly if needed.');
+    }
+  }
+
+  return await file.text();
+}
+
+function runContractAnalysis(rawText) {
+  const analysis = analyzeContractText(rawText);
+  state.latestContractAnalysis = analysis;
+  renderContractResults(analysis);
+}
+
+function renderContractResults(analysis) {
+  const gradeBox = document.getElementById('contract-grade-box');
+  const flaggedCountPill = document.getElementById('contract-flagged-count');
+  const riskSummary = document.getElementById('contract-risk-summary');
+  const container = document.getElementById('contract-clauses-container');
+
+  if (gradeBox) {
+    gradeBox.textContent = analysis.overallGrade;
+    gradeBox.className = `w-14 h-14 rounded-2xl bg-${analysis.gradeColor}-100 text-${analysis.gradeColor}-800 border border-${analysis.gradeColor}-300 flex items-center justify-center text-2xl font-black font-mono shadow-xs`;
+  }
+
+  if (flaggedCountPill) {
+    flaggedCountPill.textContent = `${analysis.flaggedCount} Red Flag Clauses Flagged`;
+    flaggedCountPill.className = `text-xs px-2.5 py-0.5 rounded-full font-bold bg-${analysis.gradeColor}-100 text-${analysis.gradeColor}-800`;
+  }
+
+  if (riskSummary) {
+    riskSummary.textContent = analysis.riskSummary;
+  }
+
+  if (!container) return;
+
+  if (analysis.flaggedClauses.length === 0) {
+    container.innerHTML = `
+      <div class="p-8 rounded-3xl bg-emerald-50/70 border border-emerald-200 text-center space-y-2">
+        <span class="text-2xl">🛡️</span>
+        <h4 class="text-sm font-bold text-emerald-900">Zero Critical Toxic Clauses Detected</h4>
+        <p class="text-xs text-emerald-700 max-w-md mx-auto">Your draft agreement does not trigger any standard statutory non-compete, 100% tail liability, or clawback traps.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = analysis.flaggedClauses.map((clause, idx) => `
+    <div class="p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4 hover:border-slate-300 transition shadow-xs">
+      
+      <!-- Clause Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <span class="w-6 h-6 rounded-lg bg-rose-100 text-rose-800 flex items-center justify-center text-xs font-bold font-mono">
+            ${idx + 1}
+          </span>
+          <h4 class="text-sm font-bold text-slate-900">${clause.name}</h4>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-rose-100 text-rose-800 border border-rose-200">${clause.riskSeverity} Risk</span>
+          <span class="text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold bg-white border border-slate-200 text-slate-700">${clause.statutoryBasis}</span>
+        </div>
+      </div>
+
+      <!-- Legal Explanation & Statutory Standard -->
+      <div class="space-y-2 text-xs">
+        <p class="text-slate-700 leading-relaxed">${clause.riskExplanation}</p>
+        <div class="p-3 rounded-2xl bg-white border border-slate-200 text-slate-600 space-y-1">
+          <strong class="text-slate-900 block text-[11px]">⚖️ Statutory Benchmark:</strong>
+          <p class="leading-relaxed">${clause.legalStandard}</p>
+        </div>
+      </div>
+
+      <!-- Recommended Redline Replacement -->
+      <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-emerald-900 text-xs flex items-center gap-1.5">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i> Recommended Replacement Redline
+          </span>
+          <button class="btn-copy-redline px-3 py-1 rounded-lg bg-white hover:bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold text-[11px] transition shadow-xs" data-redline="${encodeURIComponent(clause.recommendedRedline)}">
+            Copy Redline
+          </button>
+        </div>
+        <pre class="whitespace-pre-wrap font-mono text-[11px] text-emerald-950 leading-relaxed bg-white/60 p-3 rounded-xl border border-emerald-100">${clause.recommendedRedline}</pre>
+      </div>
+
+      <!-- Physician Negotiation Script / Talking Points -->
+      <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+            <i data-lucide="message-square" class="w-4 h-4 text-amber-600"></i> Word-for-Word Negotiation Script
+          </span>
+          <button class="btn-copy-script px-3 py-1 rounded-lg bg-white hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-[11px] transition shadow-xs" data-script="${encodeURIComponent(clause.negotiationScript)}">
+            Copy Talking Points
+          </button>
+        </div>
+        <blockquote class="italic text-slate-800 bg-white/70 p-3 rounded-xl border-l-3 border-amber-500 leading-relaxed font-sans">
+          ${clause.negotiationScript}
+        </blockquote>
+      </div>
+
+    </div>
+  `).join('');
+
+  if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+
+  // Attach dynamic copy buttons
+  container.querySelectorAll('.btn-copy-redline').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = decodeURIComponent(btn.getAttribute('data-redline'));
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy Redline'; }, 2000);
+      });
+    });
+  });
+
+  container.querySelectorAll('.btn-copy-script').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = decodeURIComponent(btn.getAttribute('data-script'));
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy Talking Points'; }, 2000);
+      });
+    });
+  });
+}
+
+// ========================================================
+// 2. PEER REVIEW & SUMMARY SUSPENSION SHIELD
 // ========================================================
 function initPeerReviewShield() {
   renderShamFactors();
@@ -460,7 +707,7 @@ function renderNPDBMatrix() {
 }
 
 // ========================================================
-// 2. EXPANDED WMC STATE BOARD DEFENSE CENTER
+// 3. EXPANDED WMC STATE BOARD DEFENSE CENTER
 // ========================================================
 function initWMCBoardDefense() {
   renderWMCPhases();
@@ -547,7 +794,7 @@ function renderWMCSanctionsTable() {
 }
 
 // ==========================================
-// 3. DEPOSITION MASTERCLASS LOGIC
+// 4. DEPOSITION MASTERCLASS LOGIC
 // ==========================================
 function initDepositionMasterclass() {
   renderCardinalRules();
@@ -696,7 +943,7 @@ function showMockFeedback(scen, optIdx) {
 }
 
 // ==========================================
-// 4. FMV CALCULATOR & CHART.JS SETUP
+// 5. FMV CALCULATOR & CHART.JS SETUP
 // ==========================================
 function initFMVCalculator() {
   const select = document.getElementById('fmv-specialty-select');
@@ -748,17 +995,6 @@ function updateFMVDisplay() {
 
   document.getElementById('disp-p90-comp').textContent = `$${(spec.compP90 / 1000).toFixed(0)}k`;
   document.getElementById('disp-p90-wrvu').textContent = `${spec.wRVUP90.toLocaleString()} wRVUs`;
-
-  const statusTitle = document.getElementById('fmv-status-title');
-  const statusDesc = document.getElementById('fmv-status-description');
-  const statusPill = document.getElementById('fmv-status-pill');
-
-  if (statusTitle) statusTitle.textContent = res.statusTitle;
-  if (statusDesc) statusDesc.textContent = res.statusDesc;
-  if (statusPill) {
-    statusPill.textContent = res.statusTitle.split('(')[0].trim();
-    statusPill.className = `text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-${res.statusClass}-100 text-${res.statusClass}-800 border border-${res.statusClass}-200`;
-  }
 
   updateFMVChart();
 }
@@ -831,7 +1067,7 @@ function updateFMVChart() {
 }
 
 // ==========================================
-// 5. MEDICOLEGAL RISK AUDIT SETUP
+// 6. MEDICOLEGAL RISK AUDIT SETUP
 // ==========================================
 function initRiskAudit() {
   const container = document.getElementById('risk-questions-container');
@@ -920,7 +1156,7 @@ function updateRiskAuditResults() {
 }
 
 // ==========================================
-// 6. MALPRACTICE LITIGATION ROADMAP
+// 7. MALPRACTICE LITIGATION ROADMAP
 // ==========================================
 function initMalpracticeLitigation() {
   const stagesContainer = document.getElementById('malpractice-stages-container');
@@ -955,7 +1191,7 @@ function initMalpracticeLitigation() {
 }
 
 // ==========================================
-// 7. STATUTE & PRECEDENT EXPLORER
+// 8. STATUTE & PRECEDENT EXPLORER
 // ==========================================
 function initStatuteExplorer() {
   renderStatutes();
@@ -1038,7 +1274,7 @@ function renderStatutes(filterQuery = '') {
 }
 
 // ==========================================
-// 8. AI COPILOT SETUP WITH PHI SANITIZATION
+// 9. AI COPILOT SETUP WITH PHI SANITIZATION
 // ==========================================
 function initAICopilot() {
   const form = document.getElementById('ai-chat-form');
@@ -1125,6 +1361,13 @@ Include statutory citations (RCW/WAC/Stark) where relevant. Include a brief educ
 function generateOfflineMedicolegalResponse(query) {
   const q = query.toLowerCase();
 
+  if (q.includes('contract') || q.includes('tail') || q.includes('non-compete') || q.includes('redline')) {
+    return `### 📜 Physician Contract Negotiation & Redline Strategy
+1. **Tail Insurance Allocation:** Demand that the hospital employer fund 100% of claims-made tail coverage if termination occurs without cause or after 2 years of service.
+2. **Strike Geographic Non-Competes:** In Washington (RCW 49.62), replace 25-mile post-employment practice bans with a standard 12-month patient non-solicitation clause.
+3. **Emergency Call Coverage Stipends:** Never accept unassigned ED call as 'included in base salary'. Insist on dedicated per diem stipends ($1,500–$3,000/24h) under Stark Law FMV standards.`;
+  }
+
   if (q.includes('peer review') || q.includes('suspension') || q.includes('sham') || q.includes('npdb')) {
     return `### 🏥 Hospital Peer Review & Summary Suspension Strategy
 1. **Never Voluntarily Resign:** Resigning while under inquiry triggers a mandatory adverse report to the NPDB that permanently affects licensing in all 50 states.
@@ -1139,17 +1382,10 @@ function generateOfflineMedicolegalResponse(query) {
 3. **Seek a STID Resolution:** Advocate for a non-disciplinary Stipulation to Informal Disposition (RCW 18.130.172) to protect your public licensing record and prevent NPDB reporting.`;
   }
 
-  if (q.includes('deposition') || q.includes('reptile') || q.includes('testimony') || q.includes('cross-exam')) {
-    return `### 🎙️ Deposition & Cross-Examination Defense Guidance
-1. **The 3-Second Pause:** Wait 3 seconds before answering to allow defense counsel to object.
-2. **Defeating Reptile Traps:** When asked "Isn't safety always the top priority?", answer: *"Patient care requires balancing clinical risks and benefits tailored to the individual patient's pathology, rather than applying rigid abstract rules."*
-3. **Never Speculate:** If you do not remember an encounter from years ago: *"I do not recall independently, but my customary practice is reflected in my contemporaneous note."*`;
-  }
-
   return `### ⚖️ MDEsq Strategic Medicolegal Analysis
-Under Washington State Law (RCW 7.70, RCW 18.71, RCW 18.130):
+Under Washington State Law (RCW 7.70, RCW 18.71, RCW 49.62, RCW 70.41.200):
+* **Contract Parity (RCW 49.62):** Restrictive covenants strictly curtailed with statutory damages for employer overreach.
 * **Standard of Care (RCW 7.70.040):** Evaluated against an ordinarily prudent health care provider in Washington under similar clinical circumstances.
-* **Informed Consent (RCW 7.70.050):** Requires documenting specific material surgical risks and non-surgical alternatives.
 * **QA Privilege (RCW 70.41.200):** Peer review discussions and QA incident reports are strictly privileged from civil discovery.`;
 }
 

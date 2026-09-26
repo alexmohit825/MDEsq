@@ -1,0 +1,11 @@
+{
+  "name": "mdesq",
+  "version": "1.0.0",
+  "description": "MDEsq - Physician Medicolegal, Contract & Board Defense Radar",
+  "type": "module",
+  "scripts": {
+    "test": "node test/test_runner.js"
+  },
+  "author": "A. Alex Mohit",
+  "license": "UNLICENSED"
+}

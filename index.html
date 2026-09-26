@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MDEsq - Physician Medicolegal, Contract & Board Defense Radar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              900: '#14532d',
+            },
+            navy: {
+              800: '#111827',
+              850: '#0f172a',
+              900: '#030712',
+              950: '#020617'
+            },
+            gold: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-active {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="bg-navy-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-600 selection:text-white">
+
+  <!-- TOP APP BAR -->
+  <header class="sticky top-0 z-50 border-b border-slate-800 bg-navy-900/90 backdrop-blur-md px-4 lg:px-8 py-3.5 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-600 to-teal-500 flex items-center justify-center shadow-lg shadow-brand-500/20 ring-1 ring-white/20">
+        <i data-lucide="scale" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">MDEsq</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 font-semibold border border-brand-500/20">Physician Legal Radar</span>
+        </div>
+        <p class="text-[11px] text-slate-400">Medicolegal Risk, FMV Parity & Board Defense</p>
+      </div>
+    </div>
+
+    <!-- JURISDICTION TOGGLE & CONTROLS -->
+    <div class="flex items-center space-x-3">
+      <!-- Jurisdiction Selector -->
+      <div class="flex items-center bg-slate-900 border border-slate-700/80 rounded-lg p-1">
+        <label for="jurisdiction-select" class="text-xs text-slate-400 pl-2 pr-1 flex items-center gap-1">
+          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-brand-400"></i>
+          <span class="hidden sm:inline">State:</span>
+        </label>
+        <select id="jurisdiction-select" class="bg-slate-800 text-xs font-semibold text-white rounded px-2 py-1 border-0 focus:ring-1 focus:ring-brand-500 cursor-pointer outline-none">
+          <option value="WA" selected>Washington (RCW/WAC)</option>
+          <option value="CA">California (MICRA/B&P)</option>
+          <option value="TX">Texas (TMB/CPRC)</option>
+          <option value="FL">Florida (Fla. Stat.)</option>
+          <option value="NY">New York (OPMC/CPLR)</option>
+        </select>
+      </div>
+
+      <!-- Quick AI Settings / API Key Modal Button -->
+      <button id="btn-open-settings" title="AI Settings & Credentials" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN NAVIGATION TABS -->
+  <div class="border-b border-slate-800 bg-navy-900/60 px-4 lg:px-8">
+    <nav class="flex space-x-2 sm:space-x-4 overflow-x-auto py-2 text-sm font-medium no-scrollbar">
+      <button class="nav-tab active-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-brand-400 bg-brand-500/10 border border-brand-500/20 transition whitespace-nowrap" data-tab="tab-fmv-contracts">
+        <i data-lucide="badge-dollar-sign" class="w-4 h-4"></i>
+        <span>Contracts & FMV</span>
+      </button>
+      <button class="nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition whitespace-nowrap" data-tab="tab-risk-audit">
+        <i data-lucide="shield-alert" class="w-4 h-4"></i>
+        <span>Standard of Care Audit</span>
+      </button>
+      <button class="nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition whitespace-nowrap" data-tab="tab-board-defense">
+        <i data-lucide="gavel" class="w-4 h-4"></i>
+        <span>Board Defense & WMC</span>
+      </button>
+      <button class="nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition whitespace-nowrap" data-tab="tab-statutes-cases">
+        <i data-lucide="book-open" class="w-4 h-4"></i>
+        <span>Statutes & Case Precedents</span>
+      </button>
+      <button class="nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition whitespace-nowrap" data-tab="tab-ai-copilot">
+        <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i>
+        <span>MDEsq AI Copilot</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- MANDATORY LEGAL DISCLAIMER BANNER -->
+    <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start space-x-3 text-xs text-amber-200/90">
+      <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5"></i>
+      <div>
+        <span class="font-semibold text-amber-300">Physician Educational Reference & Risk Analytics Notice:</span>
+        MDEsq provides automated statutory information, compensation benchmarking, and risk analysis for licensed clinicians. This tool does not establish an attorney-client relationship or constitute individualized legal representation. Consult retained healthcare counsel for binding legal decisions.
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 1: CONTRACTS & FAIR MARKET VALUE (FMV) -->
+    <!-- ========================================== -->
+    <section id="tab-fmv-contracts" class="tab-panel space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Compensation & wRVU Calculator -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="glass-card rounded-2xl p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div class="flex items-center space-x-3">
+                <div class="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400">
+                  <i data-lucide="calculator" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg font-bold text-white">FMV & Compensation Benchmarking</h2>
+                  <p class="text-xs text-slate-400">Stark Law Commercial Reasonableness & wRVU Valuation</p>
+                </div>
+              </div>
+              <span id="state-badge-fmv" class="text-xs px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-slate-300 font-mono">WA Mode</span>
+            </div>
+
+            <!-- Specialty Selector -->
+            <div class="space-y-2">
+              <label for="fmv-specialty-select" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Select Clinical Specialty</label>
+              <select id="fmv-specialty-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <!-- Populated dynamically from specialties.js -->
+              </select>
+            </div>
+
+            <!-- Input Metrics Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div>
+                <label for="input-base-salary" class="block text-xs text-slate-400 mb-1">Base / Guaranteed Salary ($)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-2.5 text-slate-500 text-sm">$</span>
+                  <input type="number" id="input-base-salary" value="850000" step="5000" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl pl-8 pr-3.5 py-2 text-sm text-white font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+              </div>
+              <div>
+                <label for="input-target-wrvus" class="block text-xs text-slate-400 mb-1">Annual wRVU Target</label>
+                <input type="number" id="input-target-wrvus" value="9500" step="100" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              </div>
+              <div>
+                <label for="input-conv-factor" class="block text-xs text-slate-400 mb-1">wRVU Conversion Rate ($/wRVU)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-2.5 text-slate-500 text-sm">$</span>
+                  <input type="number" id="input-conv-factor" value="91.50" step="0.50" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl pl-8 pr-3.5 py-2 text-sm text-white font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+              </div>
+              <div>
+                <label for="input-call-days" class="block text-xs text-slate-400 mb-1">Annual Unrestricted Call Days</label>
+                <input type="number" id="input-call-days" value="35" step="1" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              </div>
+            </div>
+
+            <!-- Live Benchmark Percentile Output Cards -->
+            <div class="pt-4 border-t border-slate-800/80 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">National Compensation Percentiles</span>
+                <span class="text-[11px] text-slate-500">Benchmark Reference</span>
+              </div>
+              <div class="grid grid-cols-4 gap-2 text-center">
+                <div class="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                  <span class="block text-[10px] text-slate-400 font-semibold">25th %ile</span>
+                  <span id="disp-p25-comp" class="text-xs sm:text-sm font-bold font-mono text-slate-300">$670k</span>
+                  <span id="disp-p25-wrvu" class="block text-[10px] text-slate-500 font-mono">7,100 wRVUs</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-900/70 border border-slate-700 ring-1 ring-brand-500/30">
+                  <span class="block text-[10px] text-brand-400 font-semibold">50th (Median)</span>
+                  <span id="disp-p50-comp" class="text-xs sm:text-sm font-bold font-mono text-white">$850k</span>
+                  <span id="disp-p50-wrvu" class="block text-[10px] text-brand-400/80 font-mono">9,300 wRVUs</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                  <span class="block text-[10px] text-slate-400 font-semibold">75th %ile</span>
+                  <span id="disp-p75-comp" class="text-xs sm:text-sm font-bold font-mono text-slate-300">$1.09M</span>
+                  <span id="disp-p75-wrvu" class="block text-[10px] text-slate-500 font-mono">12,100 wRVUs</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                  <span class="block text-[10px] text-amber-400 font-semibold">90th %ile</span>
+                  <span id="disp-p90-comp" class="text-xs sm:text-sm font-bold font-mono text-amber-300">$1.32M</span>
+                  <span id="disp-p90-wrvu" class="block text-[10px] text-slate-500 font-mono">15,200 wRVUs</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stark Law / FMV Commercial Reasonableness Analysis -->
+            <div id="fmv-analysis-card" class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="shield-check" id="fmv-status-icon" class="w-4 h-4 text-emerald-400"></i>
+                  <span id="fmv-status-title" class="text-xs font-bold text-white">Stark Law & FMV Compliance Status</span>
+                </div>
+                <span id="fmv-status-pill" class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Standard FMV Range</span>
+              </div>
+              <p id="fmv-status-description" class="text-xs text-slate-300 leading-relaxed">
+                Your entered package falls near the 50th–75th national percentile. Within safe commercial reasonableness thresholds for hospital-employed surgical specialists.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Contract Red Flag Scanner -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="glass-card rounded-2xl p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div class="flex items-center space-x-3">
+                <div class="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                  <i data-lucide="file-search" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg font-bold text-white">Contract Clause Red Flag Scanner</h2>
+                  <p class="text-xs text-slate-400">Audit restrictive covenants, tail, and termination</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Clause Checkers -->
+            <div class="space-y-3.5 text-xs">
+              
+              <!-- Non-Compete Check -->
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="font-semibold text-white flex items-center gap-1.5">
+                    <i data-lucide="ban" class="w-3.5 h-3.5 text-rose-400"></i> Non-Competition Covenant
+                  </span>
+                  <span id="nc-enforceability-tag" class="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">RCW 49.62 Protected</span>
+                </div>
+                <p class="text-slate-400 leading-relaxed">
+                  In Washington (RCW 49.62), non-competes are void unless the physician earns >$120,559/yr (adjusted annually). Cannot exceed 18 months, and moonlighting prohibitions are restricted. If hospital tries to enforce an invalid covenant, physician gets statutory damages + attorney fees.
+                </p>
+              </div>
+
+              <!-- Tail Malpractice Insurance Allocation -->
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="font-semibold text-white flex items-center gap-1.5">
+                    <i data-lucide="umbrella" class="w-3.5 h-3.5 text-blue-400"></i> Tail Insurance Obligation
+                  </span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Negotiate 100% Employer</span>
+                </div>
+                <p class="text-slate-400 leading-relaxed">
+                  Claims-made policies require extended reporting coverage ("tail"). Never agree to pay 100% of tail if terminated without cause or due to hospital material breach. Demand hospital covers 100% or 50/50 mutual split.
+                </p>
+              </div>
+
+              <!-- Without-Cause Termination Notice Window -->
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="font-semibold text-white flex items-center gap-1.5">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-purple-400"></i> Without-Cause Notice Period
+                  </span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">Target 90–120 Days</span>
+                </div>
+                <p class="text-slate-400 leading-relaxed">
+                  30-day notice is hazardous for surgical subspecialties (requires 90+ days for hospital credentialing and surgical transition). Ensure mutual notice parity with garden leave or continuation of pay.
+                </p>
+              </div>
+
+              <!-- Unilateral Policy Amendments -->
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="font-semibold text-white flex items-center gap-1.5">
+                    <i data-lucide="alert-octagon" class="w-3.5 h-3.5 text-rose-400"></i> Unilateral Amendment Trap
+                  </span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20">Strike / Require Written Consent</span>
+                </div>
+                <p class="text-slate-400 leading-relaxed">
+                  Reject clauses allowing hospital to modify compensation methodologies, call expectations, or clinical hours via "updates to medical staff bylaws or administrative policy" without signed mutual consent.
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 2: MEDICOLEGAL STANDARD OF CARE AUDIT      -->
+    <!-- ============================================== -->
+    <section id="tab-risk-audit" class="tab-panel hidden space-y-6">
+      <div class="glass-card rounded-2xl p-6 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+              <i data-lucide="shield-alert" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-white">Medicolegal Negligence & Standard of Care Audit</h2>
+              <p class="text-xs text-slate-400">Interactive 10-Point Clinical Vulnerability & Documentation Defense Engine</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button id="btn-reset-audit" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700 transition">Reset Answers</button>
+            <div id="mvi-score-badge" class="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-sm">
+              MVI: 0 / 100 (Safe)
+            </div>
+          </div>
+        </div>
+
+        <!-- 10-Question Interactive Checklist -->
+        <div id="risk-questions-container" class="space-y-4">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <!-- Dynamic Vulnerability & Statutory Defense Analysis -->
+        <div id="mvi-result-box" class="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="file-text" class="w-4 h-4 text-brand-400"></i>
+              Medicolegal Risk & Statutory Defense Summary
+            </h3>
+            <span id="mvi-tier-label" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Optimal Documentation Defense</span>
+          </div>
+          <p id="mvi-tier-narrative" class="text-xs text-slate-300 leading-relaxed">
+            Your current documentation and clinical handoff practices present minimal malpractice exposure under Washington RCW 7.70.
+          </p>
+          <div id="mvi-recs-container" class="pt-2 space-y-2">
+            <!-- Dynamic actionable bullet recommendations -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 3: BOARD DEFENSE & WMC (DUE PROCESS)       -->
+    <!-- ============================================== -->
+    <section id="tab-board-defense" class="tab-panel hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Investigation Protocol & Roadmap -->
+        <div class="lg:col-span-8 space-y-6">
+          <div class="glass-card rounded-2xl p-6 space-y-6">
+            <div class="flex items-center space-x-3 border-b border-slate-800 pb-4">
+              <div class="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                <i data-lucide="gavel" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-white">State Medical Board Investigation Defense Protocol</h2>
+                <p class="text-xs text-slate-400">Washington Medical Commission (WMC) & Uniform Disciplinary Act (RCW 18.130)</p>
+              </div>
+            </div>
+
+            <!-- 4-Phase Due Process Roadmap -->
+            <div class="space-y-4">
+              <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center text-[11px] font-mono">1</span>
+                    Phase 1: Notice of Complaint & Letter of Cooperation
+                  </span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-300 font-semibold">Critical Window (14–30 Days)</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                  <strong>The Cardinal Rule:</strong> Never draft or submit an initial response unrepresented or without first securing the complete certified medical record and audit trail. Initial physician statements are binding and cannot be retracted.
+                </p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center text-[11px] font-mono">2</span>
+                    Phase 2: Case Management Committee (CMC) Review
+                  </span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 font-semibold">Threshold Determination</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                  The panel of commissioners evaluates investigator reports and expert consultant reviews. Three outcomes: (1) Closure with no action, (2) Letter of Concern (non-disciplinary educational notice), (3) Authorization of formal charges.
+                </p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center text-[11px] font-mono">3</span>
+                    Phase 3: Stipulation to Informal Disposition (STID)
+                  </span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-semibold">NPDB Protection Shield</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                  Under RCW 18.130.172, an informal disposition (STID) does NOT constitute a finding of unprofessional conduct and is generally NOT reportable to the National Practitioner Data Bank (NPDB) unless it involves a restriction on clinical practice.
+                </p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center text-[11px] font-mono">4</span>
+                    Phase 4: Statement of Charges & OAH Administrative Hearing
+                  </span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 font-semibold">Formal Trial</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                  If charges are filed, hearing is conducted by an Administrative Law Judge (ALJ) from the Office of Administrative Hearings (OAH). Standard of proof in Washington is <em>Clear and Convincing Evidence</em> for physician license revocation.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: NPDB Reporting Rules & Physician Golden Rules -->
+        <div class="lg:col-span-4 space-y-6">
+          <div class="glass-card rounded-2xl p-6 space-y-5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+              <i data-lucide="database" class="w-4 h-4 text-emerald-400"></i>
+              NPDB Mandatory Reporting Matrix
+            </h3>
+            <ul class="space-y-3 text-xs text-slate-300">
+              <li class="p-2.5 rounded-lg bg-slate-900/70 border border-slate-800">
+                <span class="font-bold text-rose-400 block mb-1">🚨 Reportable:</span>
+                • Hospital suspension >30 days resulting from peer review<br>
+                • Any monetary medical malpractice settlement/verdict<br>
+                • Voluntary surrender of privileges while under investigation
+              </li>
+              <li class="p-2.5 rounded-lg bg-slate-900/70 border border-slate-800">
+                <span class="font-bold text-emerald-400 block mb-1">🛡️ Non-Reportable:</span>
+                • Hospital precautionary suspension <30 days<br>
+                • WMC Letter of Concern (non-disciplinary)<br>
+                • Hospital peer review remediation with no privilege loss
+              </li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 4: STATUTES & LANDMARK CASE PRECEDENTS     -->
+    <!-- ============================================== -->
+    <section id="tab-statutes-cases" class="tab-panel hidden space-y-6">
+      <div class="glass-card rounded-2xl p-6 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+              <i data-lucide="book-open" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-white">Statutory & Case Law Precedents</h2>
+              <p class="text-xs text-slate-400">Curated Washington State & Federal Health Law Corpus</p>
+            </div>
+          </div>
+          <!-- Search Bar -->
+          <div class="relative w-full sm:w-72">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+            <input type="text" id="statute-search-input" placeholder="Search RCW, Stark, Consent..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-1.5 text-xs text-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Statutes & Cases Cards Grid -->
+        <div id="statutes-grid-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 5: MDESQ AI COPILOT                        -->
+    <!-- ============================================== -->
+    <section id="tab-ai-copilot" class="tab-panel hidden space-y-6">
+      <div class="glass-card rounded-2xl p-6 space-y-4 flex flex-col h-[75vh]">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-shrink-0">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-white">MDEsq AI Medicolegal Copilot</h2>
+              <p class="text-xs text-slate-400">On-Device PHI Scrubbed • Washington RCW & Federal Law Grounded</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono flex items-center gap-1 border border-emerald-500/20">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              PHI Scrubber Active
+            </span>
+          </div>
+        </div>
+
+        <!-- Chat Transcript Area -->
+        <div id="ai-chat-messages" class="flex-1 overflow-y-auto space-y-4 p-4 rounded-xl bg-slate-950/60 border border-slate-900 text-xs">
+          <!-- System Welcome Message -->
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white flex-shrink-0 font-bold text-xs">
+              ESQ
+            </div>
+            <div class="p-3.5 rounded-2xl rounded-tl-none bg-slate-900 border border-slate-800 text-slate-200 max-w-2xl space-y-2 leading-relaxed">
+              <p class="font-semibold text-white">Welcome, Doctor.</p>
+              <p>I am your MDEsq Medicolegal Copilot. You can ask me any question regarding:</p>
+              <ul class="list-disc pl-4 space-y-1 text-slate-300">
+                <li><strong>Hospital contract negotiations</strong> & Fair Market Value (FMV) benchmarks</li>
+                <li><strong>Washington non-compete enforceability</strong> (RCW 49.62) & tail insurance allocation</li>
+                <li><strong>Standard of Care & Negligence exposure</strong> (RCW 7.70) in specific surgical scenarios</li>
+                <li><strong>Washington Medical Commission (WMC)</strong> inquiries, complaints & due process</li>
+              </ul>
+              <p class="text-[11px] text-amber-300/80 italic pt-1">
+                🔒 All patient names, MRNs, dates, and identifiers are automatically scrubbed on-device before processing.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Input Form -->
+        <form id="ai-chat-form" class="flex-shrink-0 flex items-center space-x-2 pt-2">
+          <input type="text" id="ai-chat-input" placeholder="Ask a medicolegal, contract, or board question (e.g. 'How do I respond to a WMC complaint letter?')..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <button type="submit" id="btn-send-chat" class="px-5 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition flex items-center gap-1.5 shadow-lg shadow-brand-600/20">
+            <span>Ask</span>
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          </button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800 bg-navy-900/60 px-4 lg:px-8 py-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+    <div>
+      © 2026 A. Alex Mohit • MDEsq: Physician Legal Radar
+    </div>
+    <div class="flex items-center space-x-4 text-[11px] text-slate-400">
+      <span>Washington RCW 18.71 & 7.70 Grounded</span>
+      <span>•</span>
+      <span>Zero-PII On-Device Encryption</span>
+    </div>
+  </footer>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="settings" class="w-4 h-4 text-brand-400"></i>
+          MDEsq Configuration
+        </h3>
+        <button id="btn-close-settings" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label for="setting-gemini-key" class="block font-semibold text-slate-300 mb-1">Gemini AI API Key (Optional Local Direct Key)</label>
+          <input type="password" id="setting-gemini-key" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <p class="text-[11px] text-slate-400 mt-1">If empty, MDEsq will route via your Cloudflare Edge proxy (`/api/chat`).</p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1 text-slate-400">
+          <span class="font-semibold text-white block">Cloudflare Edge Architecture</span>
+          <p>Production mode runs via Cloudflare Pages + Worker proxy with zero client-side key exposure.</p>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+        <button id="btn-save-settings" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

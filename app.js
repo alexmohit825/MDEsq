@@ -5,14 +5,19 @@
 
 import { JURISDICTIONS, FEDERAL_REGULATIONS } from './data/statutes.js';
 import { SPECIALTY_BENCHMARKS } from './data/specialties.js';
+import { DEPOSITION_CARDINAL_RULES, REPTILE_THEORY_COUNTERMEASURES, MOCK_DEPOSITION_SCENARIOS } from './data/depositions.js';
+import { PEER_REVIEW_DEFENSE_GUIDE } from './data/peer_review.js';
+import { MALPRACTICE_LITIGATION_STAGES, MALPRACTICE_INSURANCE_TACTICS } from './data/malpractice_timeline.js';
 
 // Application State
 const state = {
   currentJurisdiction: 'WA',
-  currentTab: 'tab-fmv-contracts',
+  currentTab: 'tab-depositions',
   selectedSpecialtyId: 'neurosurgery-spine',
   auditAnswers: {},
   apiKey: (typeof localStorage !== 'undefined' && localStorage.getItem('mdesq_gemini_key')) || '',
+  currentMockDepIndex: 0,
+  selectedMockOption: null,
   chatHistory: []
 };
 
@@ -263,8 +268,11 @@ if (typeof document !== 'undefined') {
 
     initNavigation();
     initJurisdictionSelector();
+    initDepositionMasterclass();
     initFMVCalculator();
     initRiskAudit();
+    initPeerReviewShield();
+    initMalpracticeLitigation();
     initStatuteExplorer();
     initAICopilot();
     initSettingsModal();
@@ -294,7 +302,7 @@ function initNavigation() {
         targetPanel.classList.remove('hidden');
       }
 
-      if (window.lucide) window.lucide.createIcons();
+      if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     });
   });
 }
@@ -324,12 +332,227 @@ function updateJurisdictionContext() {
   renderStatutes();
 }
 
-// FMV Calculator Setup
+// ==========================================
+// 1. DEPOSITION MASTERCLASS LOGIC
+// ==========================================
+function initDepositionMasterclass() {
+  renderCardinalRules();
+  renderReptileTraps();
+  renderMockDeposition();
+}
+
+function renderCardinalRules() {
+  const container = document.getElementById('cardinal-rules-container');
+  if (!container) return;
+
+  container.innerHTML = DEPOSITION_CARDINAL_RULES.map(r => `
+    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 hover:border-emerald-500/30 transition">
+      <div class="flex items-center space-x-2.5">
+        <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold font-mono">
+          ${r.num}
+        </span>
+        <h4 class="text-xs font-bold text-white">${r.title}</h4>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">${r.summary}</p>
+      <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-850 text-xs text-emerald-300/90 font-medium">
+        <span class="font-bold text-white block text-[11px] mb-0.5">Execution Rule:</span>
+        "${r.rule}"
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderReptileTraps() {
+  const container = document.getElementById('reptile-traps-container');
+  if (!container) return;
+
+  container.innerHTML = REPTILE_THEORY_COUNTERMEASURES.map((trap, idx) => `
+    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Plaintiff Trap #${idx + 1}
+        </span>
+        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Reptile Theory</span>
+      </div>
+      <blockquote class="text-xs italic text-slate-200 bg-slate-950 p-2.5 rounded-xl border-l-2 border-rose-500">
+        "${trap.plaintiffTrap}"
+      </blockquote>
+      <div class="space-y-1.5 text-xs">
+        <div class="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300">
+          <strong class="text-rose-400 block text-[11px]">❌ Dangerous Concession:</strong>
+          "${trap.flawedAnswer}"
+        </div>
+        <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+          <strong class="text-emerald-400 block text-[11px]">🛡️ Master Defense Response:</strong>
+          "${trap.masterDefenseResponse}"
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderMockDeposition() {
+  const container = document.getElementById('mock-dep-container');
+  if (!container) return;
+
+  const scen = MOCK_DEPOSITION_SCENARIOS[state.currentMockDepIndex];
+  if (!scen) return;
+
+  container.innerHTML = `
+    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold text-brand-400 uppercase tracking-wider">${scen.specialty}</span>
+        <div class="flex space-x-1">
+          <button id="btn-prev-scen" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 ${state.currentMockDepIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''}">Prev</button>
+          <button id="btn-next-scen" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 ${state.currentMockDepIndex === MOCK_DEPOSITION_SCENARIOS.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}">Next</button>
+        </div>
+      </div>
+      <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+        <strong class="text-white block mb-1">Clinical Case Context:</strong>
+        ${scen.context}
+      </div>
+      <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200">
+        <strong class="text-rose-400 block mb-1">Plaintiff Attorney Cross-Examination Question:</strong>
+        "${scen.question}"
+      </div>
+      <div class="space-y-2 pt-2">
+        <span class="text-xs font-bold text-slate-300 block">Select Your Sworn Deposition Response:</span>
+        ${scen.options.map((opt, optIdx) => `
+          <button class="mock-dep-opt w-full text-left p-3 rounded-xl border border-slate-800 hover:border-brand-500/40 bg-slate-950 hover:bg-slate-900 text-xs text-slate-200 transition space-y-1 block" data-opt-idx="${optIdx}">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white">Option ${String.fromCharCode(65 + optIdx)}</span>
+            </div>
+            <p class="text-slate-300">${opt.text}</p>
+          </button>
+        `).join('')}
+      </div>
+      <div id="mock-feedback-box" class="hidden p-4 rounded-2xl border text-xs space-y-2"></div>
+    </div>
+  `;
+
+  // Attach scenario navigation
+  document.getElementById('btn-prev-scen')?.addEventListener('click', () => {
+    if (state.currentMockDepIndex > 0) {
+      state.currentMockDepIndex--;
+      renderMockDeposition();
+    }
+  });
+
+  document.getElementById('btn-next-scen')?.addEventListener('click', () => {
+    if (state.currentMockDepIndex < MOCK_DEPOSITION_SCENARIOS.length - 1) {
+      state.currentMockDepIndex++;
+      renderMockDeposition();
+    }
+  });
+
+  // Attach option clicks
+  document.querySelectorAll('.mock-dep-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const optIdx = parseInt(btn.getAttribute('data-opt-idx'), 10);
+      showMockFeedback(scen, optIdx);
+    });
+  });
+}
+
+function showMockFeedback(scen, optIdx) {
+  const opt = scen.options[optIdx];
+  const box = document.getElementById('mock-feedback-box');
+  if (!box) return;
+
+  box.classList.remove('hidden');
+  const isMaster = opt.grade.startsWith('A');
+
+  if (isMaster) {
+    box.className = 'p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200 space-y-1.5';
+    box.innerHTML = `
+      <div class="flex items-center justify-between">
+        <strong class="text-emerald-400 font-bold text-sm">Grade: ${opt.grade} • ${opt.rating}</strong>
+        <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">Trial Ready</span>
+      </div>
+      <p class="text-slate-200 leading-relaxed">${opt.analysis}</p>
+    `;
+  } else {
+    box.className = 'p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-200 space-y-1.5';
+    box.innerHTML = `
+      <div class="flex items-center justify-between">
+        <strong class="text-rose-400 font-bold text-sm">Grade: ${opt.grade} • ${opt.rating}</strong>
+        <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono">Severe Vulnerability</span>
+      </div>
+      <p class="text-slate-200 leading-relaxed">${opt.analysis}</p>
+    `;
+  }
+}
+
+// ==========================================
+// 2. PEER REVIEW & SUSPENSION SHIELD
+// ==========================================
+function initPeerReviewShield() {
+  const container = document.getElementById('peer-review-content-container');
+  if (!container) return;
+
+  container.innerHTML = PEER_REVIEW_DEFENSE_GUIDE.map(item => `
+    <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 flex flex-col justify-between">
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-blue-400 font-mono font-bold">${item.urgency}</span>
+        </div>
+        <h3 class="text-sm font-bold text-white">${item.topic}</h3>
+        <span class="text-[11px] text-slate-400 block font-mono">${item.statutoryBasis}</span>
+        <ul class="space-y-2 pt-2 text-xs text-slate-300">
+          ${item.protocol.map(p => `
+            <li class="flex items-start gap-2">
+              <span class="text-blue-400 font-bold">•</span>
+              <span class="leading-relaxed">${p}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ==========================================
+// 3. MALPRACTICE LITIGATION ROADMAP
+// ==========================================
+function initMalpracticeLitigation() {
+  const stagesContainer = document.getElementById('malpractice-stages-container');
+  if (stagesContainer) {
+    stagesContainer.innerHTML = MALPRACTICE_LITIGATION_STAGES.map(s => `
+      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 hover:border-purple-500/30 transition">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-white flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs font-mono font-bold">${s.step}</span>
+            ${s.stage}
+          </span>
+          <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-purple-300 font-mono">${s.duration}</span>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">${s.description}</p>
+        <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-850 text-xs text-purple-200">
+          <strong class="text-white block text-[11px] mb-0.5">Physician Strategic Priority:</strong>
+          ${s.physicianAction}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const tacticsContainer = document.getElementById('insurance-tactics-container');
+  if (tacticsContainer) {
+    tacticsContainer.innerHTML = MALPRACTICE_INSURANCE_TACTICS.map(t => `
+      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
+        <h4 class="text-xs font-bold text-white">${t.topic}</h4>
+        <p class="text-xs text-slate-300 leading-relaxed">${t.analysis}</p>
+      </div>
+    `).join('');
+  }
+}
+
+// ==========================================
+// 4. FMV CALCULATOR SETUP
+// ==========================================
 function initFMVCalculator() {
   const select = document.getElementById('fmv-specialty-select');
   if (!select) return;
 
-  // Populate options
   select.innerHTML = SPECIALTY_BENCHMARKS.map(s => `
     <option value="${s.id}" ${s.id === state.selectedSpecialtyId ? 'selected' : ''}>
       ${s.name} (${s.category})
@@ -347,7 +570,6 @@ function initFMVCalculator() {
     updateFMVDisplay();
   });
 
-  // Attach input listeners
   ['input-base-salary', 'input-target-wrvus', 'input-conv-factor', 'input-call-days'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', updateFMVDisplay);
@@ -366,7 +588,6 @@ function updateFMVDisplay() {
   const res = calculateFMVMetrics(specialtyId, baseSalary, targetWrvus, convFactor, callDays);
   const spec = res.specialty;
 
-  // Update Percentile Numbers
   document.getElementById('disp-p25-comp').textContent = `$${(spec.compP25 / 1000).toFixed(0)}k`;
   document.getElementById('disp-p25-wrvu').textContent = `${spec.wRVUP25.toLocaleString()} wRVUs`;
 
@@ -379,7 +600,6 @@ function updateFMVDisplay() {
   document.getElementById('disp-p90-comp').textContent = `$${(spec.compP90 / 1000).toFixed(0)}k`;
   document.getElementById('disp-p90-wrvu').textContent = `${spec.wRVUP90.toLocaleString()} wRVUs`;
 
-  // Update Status Box
   const statusTitle = document.getElementById('fmv-status-title');
   const statusDesc = document.getElementById('fmv-status-description');
   const statusPill = document.getElementById('fmv-status-pill');
@@ -388,18 +608,19 @@ function updateFMVDisplay() {
   if (statusDesc) statusDesc.textContent = res.statusDesc;
   if (statusPill) {
     statusPill.textContent = res.statusTitle.split('(')[0].trim();
-    statusPill.className = `text-[10px] px-2 py-0.5 rounded-full font-semibold bg-${res.statusClass}-500/10 text-${res.statusClass}-400 border border-${res.statusClass}-500/20`;
+    statusPill.className = `text-[10px] px-2.5 py-0.5 rounded-full font-semibold bg-${res.statusClass}-500/10 text-${res.statusClass}-400 border border-${res.statusClass}-500/20`;
   }
 }
 
-// Medicolegal Risk Audit Setup
+// ==========================================
+// 5. MEDICOLEGAL RISK AUDIT SETUP
+// ==========================================
 function initRiskAudit() {
   const container = document.getElementById('risk-questions-container');
   if (!container) return;
 
-  // Render questions
-  container.innerHTML = RISK_QUESTIONS.map((q, qIndex) => `
-    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3" id="card-${q.id}">
+  container.innerHTML = RISK_QUESTIONS.map((q) => `
+    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3" id="card-${q.id}">
       <div class="flex items-center justify-between">
         <h4 class="text-xs font-bold text-white flex items-center gap-2">
           ${q.title}
@@ -409,7 +630,7 @@ function initRiskAudit() {
       <p class="text-xs text-slate-300">${q.question}</p>
       <div class="grid grid-cols-1 gap-2 pt-1">
         ${q.options.map((opt, optIndex) => `
-          <label class="flex items-start space-x-2.5 p-2.5 rounded-lg border border-slate-800 hover:bg-slate-800/60 cursor-pointer transition text-xs text-slate-300">
+          <label class="flex items-start space-x-2.5 p-3 rounded-xl border border-slate-800 hover:bg-slate-800/60 cursor-pointer transition text-xs text-slate-300">
             <input type="radio" name="${q.id}" value="${optIndex}" class="mt-0.5 text-brand-500 focus:ring-brand-500" ${state.auditAnswers[q.id] === optIndex ? 'checked' : ''}>
             <span class="leading-relaxed">${opt.text}</span>
           </label>
@@ -418,7 +639,6 @@ function initRiskAudit() {
     </div>
   `).join('');
 
-  // Attach change listener
   container.addEventListener('change', (e) => {
     if (e.target.type === 'radio') {
       state.auditAnswers[e.target.name] = parseInt(e.target.value, 10);
@@ -426,7 +646,6 @@ function initRiskAudit() {
     }
   });
 
-  // Reset button
   document.getElementById('btn-reset-audit')?.addEventListener('click', () => {
     state.auditAnswers = {};
     document.querySelectorAll('#risk-questions-container input[type="radio"]').forEach(r => r.checked = false);
@@ -442,7 +661,7 @@ function updateRiskAuditResults() {
   const badge = document.getElementById('mvi-score-badge');
   if (badge) {
     badge.textContent = `MVI: ${res.score} / 100 (${res.tier.toUpperCase()})`;
-    badge.className = `px-3.5 py-1.5 rounded-xl bg-${res.badgeColor}-500/10 border border-${res.badgeColor}-500/30 text-${res.badgeColor}-400 font-mono font-bold text-sm`;
+    badge.className = `px-4 py-1.5 rounded-xl bg-${res.badgeColor}-500/10 border border-${res.badgeColor}-500/30 text-${res.badgeColor}-400 font-mono font-bold text-sm`;
   }
 
   const tierLabel = document.getElementById('mvi-tier-label');
@@ -458,31 +677,33 @@ function updateRiskAuditResults() {
   if (recsContainer) {
     if (res.criticalDeficiencies.length === 0) {
       recsContainer.innerHTML = `
-        <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
           ✅ Zero high-exposure vulnerabilities logged. Continue contemporaneous operative reporting and closed-loop test tracking.
         </div>
       `;
     } else {
       recsContainer.innerHTML = `
-        <div class="space-y-1.5">
+        <div class="space-y-2">
           <span class="text-[11px] font-bold text-rose-400 uppercase tracking-wider block">Priority Defensive Corrective Actions:</span>
           ${res.criticalDeficiencies.map(d => `
-            <div class="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200 flex items-start gap-2">
+            <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200 flex items-start gap-2">
               <i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5"></i>
               <div>
                 <strong>${d.question} (${d.statute}):</strong>
-                <p class="text-slate-300 mt-0.5">Deficiency logged: "${d.selectedText.substring(0, 90)}...". Mandate explicit charting before hospital record closure.</p>
+                <p class="text-slate-300 mt-0.5">Deficiency logged: "${d.selectedText.substring(0, 95)}...". Mandate explicit charting before hospital record closure.</p>
               </div>
             </div>
           `).join('')}
         </div>
       `;
-      if (window.lucide) window.lucide.createIcons();
+      if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     }
   }
 }
 
-// Statute & Case Law Explorer Setup
+// ==========================================
+// 6. STATUTE & PRECEDENT EXPLORER
+// ==========================================
 function initStatuteExplorer() {
   renderStatutes();
 
@@ -546,7 +767,7 @@ function renderStatutes(filterQuery = '') {
   }
 
   container.innerHTML = filtered.map(item => `
-    <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5 flex flex-col justify-between">
+    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5 flex flex-col justify-between">
       <div class="space-y-1.5">
         <div class="flex items-center justify-between">
           <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-brand-400 font-mono font-semibold">${item.code}</span>
@@ -563,7 +784,9 @@ function renderStatutes(filterQuery = '') {
   `).join('');
 }
 
-// AI Copilot Setup with PHI Sanitization
+// ==========================================
+// 7. AI COPILOT SETUP WITH PHI SANITIZATION
+// ==========================================
 function initAICopilot() {
   const form = document.getElementById('ai-chat-form');
   const input = document.getElementById('ai-chat-input');
@@ -578,13 +801,8 @@ function initAICopilot() {
 
     input.value = '';
 
-    // Append User Message to UI
     appendChatMessage('user', query);
-
-    // Sanitize PHI
     const sanitizedQuery = sanitizePHI(query);
-
-    // Show Typing Indicator
     const typingId = appendTypingIndicator();
 
     try {
@@ -603,11 +821,10 @@ function initAICopilot() {
 async function queryAICopilot(sanitizedPrompt) {
   const systemPrompt = `You are MDEsq, an expert physician-legal advocate and medicolegal strategist for licensed physicians and surgeons.
 Your jurisdiction is primarily ${state.currentJurisdiction} (Washington State - RCW 18.71, RCW 7.70, RCW 49.62, WAC 246-919, WMC rules).
-You provide sharp, legally grounded, practical advice regarding hospital contract negotiations, Fair Market Value (FMV), Stark Law, non-competes, medical malpractice standard of care defense, and medical board investigations.
+You provide sharp, legally grounded, practical advice regarding hospital contract negotiations, Fair Market Value (FMV), Stark Law, non-competes, medical malpractice standard of care defense, depositions/Reptile Theory, and medical board investigations.
 Always maintain a direct, professional, protective tone for the physician.
 Include statutory citations (RCW/WAC/Stark) where relevant. Include a brief educational disclaimer.`;
 
-  // 1. If direct API key is stored locally in settings, use Google Gemini API directly
   if (state.apiKey) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.apiKey}`;
     const payload = {
@@ -635,7 +852,6 @@ Include statutory citations (RCW/WAC/Stark) where relevant. Include a brief educ
     return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
   }
 
-  // 2. Otherwise route via Cloudflare Pages Function proxy (/api/chat)
   const proxyRes = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -649,14 +865,19 @@ Include statutory citations (RCW/WAC/Stark) where relevant. Include a brief educ
     const data = await proxyRes.json();
     return data.response;
   } else {
-    // If running purely offline/locally without backend proxy or API key, provide smart rule-based response
     return generateOfflineMedicolegalResponse(sanitizedPrompt);
   }
 }
 
-// Smart Offline Fallback Engine for immediate demonstration
 function generateOfflineMedicolegalResponse(query) {
   const q = query.toLowerCase();
+
+  if (q.includes('deposition') || q.includes('reptile') || q.includes('testimony') || q.includes('cross-exam')) {
+    return `### 🎙️ Deposition & Cross-Examination Defense Guidance
+1. **The 3-Second Pause:** Wait 3 seconds before answering to allow defense counsel to object.
+2. **Defeating Reptile Traps:** When asked "Isn't safety always the top priority?", answer: *"Patient care requires balancing clinical risks and benefits tailored to the individual patient's pathology, rather than applying rigid abstract rules."*
+3. **Never Speculate:** If you do not remember an encounter from years ago: *"I do not recall independently, but my customary practice is reflected in my contemporaneous note."*`;
+  }
 
   if (q.includes('board') || q.includes('wmc') || q.includes('complaint') || q.includes('investigation')) {
     return `### 🛡️ Washington Medical Commission (WMC) Defense Guidance
@@ -670,13 +891,6 @@ function generateOfflineMedicolegalResponse(query) {
 1. **Statutory Salary Floor:** In Washington, non-compete agreements are void against employees earning less than the statutory inflation-adjusted threshold (approx. $120,559+/yr).
 2. **18-Month Presumption Ceiling:** Any covenant exceeding 18 months post-termination is rebuttably presumed unreasonable and unenforceable.
 3. **Mandatory Attorney Fees (RCW 49.62.080):** If an employer attempts to enforce an unlawful non-compete against you, the court *must* award statutory damages plus your reasonable attorney fees.`;
-  }
-
-  if (q.includes('fmv') || q.includes('stark') || q.includes('salary') || q.includes('wrvu') || q.includes('compensation')) {
-    return `### 💰 Fair Market Value (FMV) & Stark Law (42 U.S.C. § 1395nn)
-1. **Commercial Reasonableness:** Compensation must reflect FMV for clinical services rendered, without regard to volume or value of hospital admissions or downstream referrals.
-2. **Safe Corridor (25th–75th Percentile):** Compensation aligned with median MGMA/AMGA benchmark $/wRVU conversion factors represents the safest regulatory tier.
-3. **Call Coverage:** Ensure all 24-hour unassigned ED call shifts receive dedicated stipends separate from the clinical wRVU base threshold.`;
   }
 
   return `### ⚖️ MDEsq Strategic Medicolegal Analysis
@@ -699,16 +913,16 @@ function appendChatMessage(role, text) {
       <div class="p-3.5 rounded-2xl rounded-tr-none bg-brand-600 text-white max-w-xl text-xs leading-relaxed shadow">
         ${escapeHtml(text)}
       </div>
-      <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 flex-shrink-0 font-bold text-xs">
+      <div class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 flex-shrink-0 font-bold text-xs">
         MD
       </div>
     `;
   } else {
     div.innerHTML = `
-      <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white flex-shrink-0 font-bold text-xs">
+      <div class="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center text-white flex-shrink-0 font-bold text-xs shadow-md">
         ESQ
       </div>
-      <div class="p-3.5 rounded-2xl rounded-tl-none bg-slate-900 border border-slate-800 text-slate-200 max-w-2xl text-xs space-y-2 leading-relaxed">
+      <div class="p-4 rounded-2xl rounded-tl-none bg-slate-900 border border-slate-800 text-slate-200 max-w-2xl text-xs space-y-2 leading-relaxed shadow-lg">
         ${formatMarkdown(text)}
       </div>
     `;
@@ -725,7 +939,7 @@ function appendTypingIndicator() {
   div.id = id;
   div.className = 'flex items-start space-x-3';
   div.innerHTML = `
-    <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white flex-shrink-0 font-bold text-xs">
+    <div class="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center text-white flex-shrink-0 font-bold text-xs">
       ESQ
     </div>
     <div class="p-3 rounded-2xl rounded-tl-none bg-slate-900 border border-slate-800 text-slate-400 text-xs flex items-center space-x-1.5">

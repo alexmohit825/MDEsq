@@ -1,11 +1,15 @@
 /**
  * MDEsq - Programmatic Test Suite
  * Executes rigorous verification of FMV calculations, MVI Risk Audit engine,
+ * Deposition Masterclass, Peer Review Shield, Malpractice Litigation Roadmap,
  * PHI de-identification sanitizer, and statutory data integrity.
  */
 
 import { JURISDICTIONS, FEDERAL_REGULATIONS } from '../data/statutes.js';
 import { SPECIALTY_BENCHMARKS } from '../data/specialties.js';
+import { DEPOSITION_CARDINAL_RULES, REPTILE_THEORY_COUNTERMEASURES, MOCK_DEPOSITION_SCENARIOS } from '../data/depositions.js';
+import { PEER_REVIEW_DEFENSE_GUIDE } from '../data/peer_review.js';
+import { MALPRACTICE_LITIGATION_STAGES, MALPRACTICE_INSURANCE_TACTICS } from '../data/malpractice_timeline.js';
 import { calculateFMVMetrics, calculateMVIScore, sanitizePHI, RISK_QUESTIONS } from '../app.js';
 
 let passedTests = 0;
@@ -91,8 +95,26 @@ assert(mviSevere.tier === 'high', 'Score >= 40 classified as Severe Medicolegal 
 assert(mviSevere.criticalDeficiencies.length === 4, 'Correctly captures all 4 logged deficiencies with RCW statutes');
 console.log('  MVI Risk calculation and statutory mapping verified.\n');
 
-// 4. PHI / PII ON-DEVICE SANITIZER TESTS
-console.log('▶ [TEST GROUP 4] Zero-Knowledge PHI/PII De-Identification Sanitizer');
+// 4. DEPOSITION MASTERCLASS & TRIAL TESTIMONY TESTS
+console.log('▶ [TEST GROUP 4] Deposition Masterclass & Reptile Theory Engine');
+assert(DEPOSITION_CARDINAL_RULES.length === 8, 'Includes all 8 Cardinal Deposition Rules');
+assert(REPTILE_THEORY_COUNTERMEASURES.length >= 3, 'Includes at least 3 Reptile Theory countermeasure templates');
+assert(MOCK_DEPOSITION_SCENARIOS.length >= 2, 'Includes at least 2 mock deposition cross-examination scenarios');
+
+const scen1 = MOCK_DEPOSITION_SCENARIOS[0];
+assert(scen1.options.some(o => o.grade === 'A+'), 'Scenario includes a Master Defense Response graded A+');
+assert(scen1.options.some(o => o.grade === 'F'), 'Scenario includes a Fatal Concession option graded F');
+console.log('  Deposition masterclass and mock cross-examination engine verified.\n');
+
+// 5. PEER REVIEW & MALPRACTICE LITIGATION ROADMAP TESTS
+console.log('▶ [TEST GROUP 5] Peer Review Shield & Malpractice Litigation Lifecycle');
+assert(PEER_REVIEW_DEFENSE_GUIDE.length === 3, 'Peer review guide covers summary suspension, sham peer review, and subpoenas');
+assert(MALPRACTICE_LITIGATION_STAGES.length === 7, 'Litigation roadmap covers all 7 stages from pre-suit notice to jury verdict');
+assert(MALPRACTICE_INSURANCE_TACTICS.length === 3, 'Insurance tactics cover Consent-to-Settle, Claims-Made/Tail, and Cumis Counsel');
+console.log('  Peer review and malpractice litigation roadmaps verified.\n');
+
+// 6. PHI / PII ON-DEVICE SANITIZER TESTS
+console.log('▶ [TEST GROUP 6] Zero-Knowledge PHI/PII De-Identification Sanitizer');
 const rawSensitivePrompt = "Patient John Doe (MRN: 98765432) underwent L4-L5 fusion on 10/14/2025. Phone: (206) 555-0199, SSN: 123-45-6789, email: patient@gmail.com. Can I be sued for dural tear?";
 const sanitized = sanitizePHI(rawSensitivePrompt);
 

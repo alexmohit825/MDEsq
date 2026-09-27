@@ -35,7 +35,7 @@ You provide sharp, legally grounded, practical advice regarding hospital contrac
 Always maintain a direct, professional, protective tone for the physician.
 Include statutory citations (RCW/WAC/Stark) where relevant. Include a brief educational disclaimer.`;
 
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
 
     const geminiPayload = {
       contents: [

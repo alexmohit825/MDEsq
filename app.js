@@ -1739,7 +1739,7 @@ Always maintain a direct, professional, protective tone for the physician.
 Include statutory citations (RCW/WAC/Stark) where relevant. Include a brief educational disclaimer.`;
 
   if (state.apiKey) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${state.apiKey}`;
     const payload = {
       contents: [
         {

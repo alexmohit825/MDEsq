@@ -1,0 +1,10 @@
+_worker.js
+server.js
+wrangler.toml
+.git
+node_modules
+test
+package.json
+package-lock.json
+GEMINI.md
+.assetsignore

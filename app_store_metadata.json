@@ -1,0 +1,23 @@
+{
+  "app_name": "MDEsq: Physician Legal Radar",
+  "subtitle": "Contract & Malpractice Defense",
+  "bundle_id": "com.dramohit.mdesq",
+  "sku": "MDESQ2026",
+  "primary_category": "MEDICAL",
+  "secondary_category": "REFERENCE",
+  "default_language": "en-US",
+  "pricing_tier": "Tier 2 ($1.99)",
+  "copyright": "2026 A. Alex Mohit",
+  "description": "MDEsq is the premier executive medicolegal intelligence and rights defense radar engineered specifically for licensed physicians, surgeons, and healthcare executives.\n\nKey Capabilities:\n• Hospital Contract Redlining: Instant audit of restrictive covenants (RCW 49.62), malpractice tail obligations, uncompensated emergency call, and indemnity clauses with verbatim negotiation scripts.\n• Malpractice Precedent Matcher: Multi-jurisdiction caselaw finder (WA, OR, CA, NY) matching clinical complications against landmark standard of care precedents with defensive charting directives.\n• Fair Market Value (FMV) & Stark Law Calculator: National compensation benchmarks across 13 medical/surgical subspecialties with commercial reasonableness verification.\n• Sham Peer Review Diagnostic Index: 10-Factor bad-faith retaliation analyzer and 30-day HCQIA summary suspension timeline.\n• Deposition Masterclass: 8 Cardinal Deposition Rules and Reptile Theory cross-examination counter-scripts.\n• Zero-Knowledge Privacy: 100% on-device PHI scrubbing.",
+  "keywords": "physician,doctor,medical malpractice,hospital contract,non compete,peer review,stark law,wrvu,deposition,defense",
+  "support_url": "https://github.com/alexmohit825/MDEsq",
+  "marketing_url": "https://github.com/alexmohit825/MDEsq",
+  "privacy_policy_url": "https://github.com/alexmohit825/MDEsq/blob/main/PRIVACY.md",
+  "review_contact": {
+    "first_name": "Alex",
+    "last_name": "Mohit",
+    "email": "mohalex@gmail.com",
+    "phone": "+12066795710"
+  },
+  "review_notes": "MDEsq is an educational reference tool for licensed healthcare professionals. Test account not required. All core features run on-device without requiring user authentication."
+}

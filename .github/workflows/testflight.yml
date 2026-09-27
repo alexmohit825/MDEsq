@@ -6,7 +6,8 @@ on:
     branches:
       - main
     paths:
-      - 'ios/**'
+      - 'MDEsq/**'
+      - 'MDEsq.xcodeproj/**'
       - '.github/workflows/testflight.yml'
 
 jobs:
@@ -36,13 +37,11 @@ jobs:
 
       - name: Dynamic Build Number Injection
         run: |
-          cd ios/MDEsq
           xcrun agvtool new-version -all ${{ github.run_number }}
           xcrun agvtool new-marketing-version "1.0.0"
 
       - name: Build Archive
         run: |
-          cd ios/MDEsq
           xcodebuild archive \
             -project MDEsq.xcodeproj \
             -scheme MDEsq \
@@ -57,7 +56,6 @@ jobs:
 
       - name: Export IPA
         run: |
-          cd ios/MDEsq
           cat <<EOF > exportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -92,6 +90,6 @@ jobs:
         run: |
           xcrun altool --upload-app \
             --type ios \
-            --file ios/MDEsq/build/IPA/MDEsq.ipa \
+            --file build/IPA/MDEsq.ipa \
             --apiKey ${{ env.APPLE_KEY_ID }} \
             --apiIssuer ${{ env.APPLE_ISSUER_ID }}

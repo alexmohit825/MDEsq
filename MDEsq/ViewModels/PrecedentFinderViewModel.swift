@@ -1,139 +1,262 @@
 import Foundation
-import Combine
+import SwiftUI
 import Speech
 import AVFoundation
 
+struct ScoredPrecedent: Identifiable, Hashable {
+    let precedent: LegalPrecedent
+    let matchScore: Int // 0...100
+    let matchedKeywords: [String]
+    var id: String { precedent.id }
+}
+
 @MainActor
-public class PrecedentFinderViewModel: ObservableObject {
-    @Published public var searchQuery: String = ""
-    @Published public var selectedJurisdiction: String = "WA" // WA, OR, CA, NY, ALL
-    @Published public var matchingCases: [PrecedentCase] = []
-    @Published public var isRecording: Bool = false
-    @Published public var speechAuthStatus: String = "Ready"
-    
-    private var speechRecognizer: SFSpeechRecognizer? = SFSpeechRecognizer()
+final class PrecedentFinderViewModel: ObservableObject {
+    @Published var searchQuery: String = ""
+    @Published var selectedJurisdiction: String = "ALL"
+    @Published var scoredResults: [ScoredPrecedent] = []
+    @Published var isRecordingVoice: Bool = false
+    @Published var voiceErrorMessage: String? = nil
+    @Published var isSynthesizingAI: Bool = false
+    @Published var aiCaseSynthesis: String? = nil
+    @Published var copiedToast: String? = nil
+
+    let jurisdictions = ["ALL", "WA", "OR", "CA", "NY"]
+
+    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
-    
-    public init() {}
-    
-    public func searchPrecedents() {
-        let q = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !q.isEmpty else {
-            matchingCases = []
+
+    init() {
+        performSearch()
+    }
+
+    func applyPreset(_ preset: PrecedentScenarioPreset) {
+        MDEsqHaptics.impactLight()
+        searchQuery = preset.queryText
+        aiCaseSynthesis = nil
+        performSearch()
+    }
+
+    func selectJurisdiction(_ code: String) {
+        MDEsqHaptics.selection()
+        selectedJurisdiction = code
+        performSearch()
+    }
+
+    func performSearch() {
+        let pool: [LegalPrecedent]
+        if selectedJurisdiction == "ALL" {
+            pool = PrecedentDatabase.allPrecedents
+        } else {
+            pool = PrecedentDatabase.allPrecedents.filter { $0.jurisdiction == selectedJurisdiction }
+        }
+
+        let trimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else {
+            scoredResults = pool.map {
+                ScoredPrecedent(
+                    precedent: $0,
+                    matchScore: $0.jurisdiction == "WA" ? 96 : 88,
+                    matchedKeywords: Array($0.keywords.prefix(3))
+                )
+            }
             return
         }
-        
-        let all = PrecedentDatabase.allCases
-        var results: [(caseItem: PrecedentCase, score: Int)] = []
-        
-        for c in all {
-            if selectedJurisdiction != "ALL" && c.jurisdiction != selectedJurisdiction {
-                continue
-            }
-            
-            var score = 0
-            for kw in c.scenarioKeywords {
-                if q.contains(kw.lowercased()) {
-                    score += 25
+
+        let queryTokens = trimmed
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { $0.count >= 2 }
+
+        var scored: [ScoredPrecedent] = []
+
+        for item in pool {
+            var rawPoints = 0
+            var matched: [String] = []
+
+            let searchableBlob = [
+                item.caseName,
+                item.specialty,
+                item.category,
+                item.holding,
+                item.statutoryRef,
+                item.defenseStrategy,
+                item.defensiveChartingDirective
+            ].joined(separator: " ").lowercased()
+
+            for kw in item.keywords {
+                let lowerKW = kw.lowercased()
+                if trimmed.contains(lowerKW) {
+                    rawPoints += 28
+                    matched.append(kw)
+                } else {
+                    for token in queryTokens where lowerKW.contains(token) {
+                        rawPoints += 16
+                        if !matched.contains(kw) {
+                            matched.append(kw)
+                        }
+                    }
                 }
             }
-            
-            if q.contains(c.clinicalTopic.lowercased()) { score += 30 }
-            if q.contains(c.caseCitation.lowercased()) { score += 40 }
-            
-            if score > 0 {
-                results.append((caseItem: c, score: score))
+
+            for token in queryTokens {
+                if searchableBlob.contains(token) {
+                    rawPoints += 12
+                    if !matched.contains(token) {
+                        matched.append(token)
+                    }
+                }
+            }
+
+            if item.jurisdiction == "WA" && rawPoints > 0 {
+                rawPoints += 8 // Primary WA statutory anchor boost
+            }
+
+            if rawPoints > 0 {
+                let normalizedScore = min(99, max(55, 50 + rawPoints))
+                scored.append(
+                    ScoredPrecedent(
+                        precedent: item,
+                        matchScore: normalizedScore,
+                        matchedKeywords: Array(matched.prefix(5))
+                    )
+                )
             }
         }
+
+        if scored.isEmpty {
+            scoredResults = pool.map {
+                ScoredPrecedent(
+                    precedent: $0,
+                    matchScore: 65,
+                    matchedKeywords: Array($0.keywords.prefix(2))
+                )
+            }
+        } else {
+            scoredResults = scored.sorted { $0.matchScore > $1.matchScore }
+        }
+    }
+
+    // MARK: - Live AI Custom Clinical Case Strategy (Cloudflare Edge Worker)
+    func requestAICaseStrategy() async {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        MDEsqHaptics.impactMedium()
+        isSynthesizingAI = true
+        defer { isSynthesizingAI = false }
+
+        let topCitations = scoredResults.prefix(3).map { "\($0.precedent.caseName) (\($0.precedent.citation)) — \($0.precedent.statutoryRef)" }.joined(separator: "; ")
+
+        let prompt = """
+        Clinical / Medicolegal Scenario Described by Physician: "\(query)"
+        Target Jurisdiction Filter: \(selectedJurisdiction)
+        Relevant Indexed Precedents: \(topCitations)
         
-        results.sort { $0.score > $1.score }
-        self.matchingCases = results.map { $0.caseItem }
+        Deliver a concise, 3-part Executive Defense Brief:
+        1. STATUTORY & CASE LAW SHIELD (how RCW 7.70.040 / WPI 105.08 or applicable state precedent insulates this clinical decision)
+        2. PRIMARY PLAINTIFF ATTACK VECTOR TO ANTICIPATE
+        3. CONTEMPORANEOUS OPERATIVE / PROGRESS NOTE CHARTING FORMULA (exact quotation-ready language to enter into the EMR today)
+        """
+
+        let result = await MDEsqEdgeAIClient.shared.askCopilot(
+            prompt: prompt,
+            systemContext: "Module: Malpractice Precedent & Defensive Charting Engine."
+        )
+        aiCaseSynthesis = result
+        MDEsqHaptics.success()
     }
-    
-    public func applyPreset(_ query: String, jurisdiction: String = "WA") {
-        self.searchQuery = query
-        self.selectedJurisdiction = jurisdiction
-        searchPrecedents()
-    }
-    
-    public func toggleSpeechRecognition() {
-        if isRecording {
+
+    // MARK: - Voice Dictation Support
+    func toggleVoiceDictation() {
+        if isRecordingVoice {
             stopRecording()
         } else {
             startRecording()
         }
     }
-    
+
     private func startRecording() {
+        voiceErrorMessage = nil
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 guard let self = self else { return }
-                switch status {
-                case .authorized:
-                    self.beginAudioEngineRecording()
-                case .denied, .restricted, .notDetermined:
-                    self.speechAuthStatus = "Microphone / Speech access denied."
-                @unknown default:
-                    break
+                guard status == .authorized else {
+                    self.voiceErrorMessage = "Speech recognition permission not granted in Settings."
+                    return
                 }
+                self.beginAudioSession()
             }
         }
     }
-    
-    private func beginAudioEngineRecording() {
+
+    private func beginAudioSession() {
         recognitionTask?.cancel()
         recognitionTask = nil
-        
+
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
-            speechAuthStatus = "Audio session failed."
+            voiceErrorMessage = "Unable to initialize microphone session."
             return
         }
-        
-        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest = recognitionRequest else { return }
-        recognitionRequest.shouldReportPartialResults = true
-        
+
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        self.recognitionRequest = request
+
         let inputNode = audioEngine.inputNode
-        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            guard let self = self else { return }
-            if let result = result {
-                self.searchQuery = result.bestTranscription.formattedString
-                self.searchPrecedents()
-            }
-            if error != nil || (result?.isFinal ?? false) {
-                self.stopRecording()
-            }
-        }
-        
         let recordingFormat = inputNode.outputFormat(forBus: 0)
+        inputNode.removeTap(onBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            self.recognitionRequest?.append(buffer)
+            request.append(buffer)
         }
-        
+
         audioEngine.prepare()
         do {
             try audioEngine.start()
-            self.isRecording = true
-            self.speechAuthStatus = "Listening..."
+            isRecordingVoice = true
+            MDEsqHaptics.impactMedium()
         } catch {
-            self.speechAuthStatus = "Could not start audio engine."
+            voiceErrorMessage = "Audio engine failed to start."
+            return
+        }
+
+        recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
+            Task { @MainActor in
+                guard let self = self else { return }
+                if let result = result {
+                    self.searchQuery = result.bestTranscription.formattedString
+                    self.performSearch()
+                }
+                if error != nil || (result?.isFinal == true) {
+                    self.stopRecording()
+                }
+            }
         }
     }
-    
-    private func stopRecording() {
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
+
+    func stopRecording() {
+        if audioEngine.isRunning {
+            audioEngine.stop()
+            audioEngine.inputNode.removeTap(onBus: 0)
+        }
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionRequest = nil
         recognitionTask = nil
-        isRecording = false
-        speechAuthStatus = "Ready"
+        isRecordingVoice = false
+    }
+
+    func showCopiedToast(_ message: String) {
+        copiedToast = message
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            if copiedToast == message {
+                copiedToast = nil
+            }
+        }
     }
 }

@@ -5,7 +5,7 @@ struct MDEsqApp: App {
     var body: some Scene {
         WindowGroup {
             MainTabView()
-                .preferredColorScheme(.light)
+                .preferredColorScheme(.dark)
         }
     }
 }

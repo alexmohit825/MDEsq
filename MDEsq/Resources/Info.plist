@@ -28,8 +28,10 @@
     <string>MDEsq uses microphone access for on-device voice dictation of clinical case scenarios.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>MDEsq uses speech recognition to transcribe clinical queries for medicolegal precedent matching.</string>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
     <key>UIUserInterfaceStyle</key>
-    <string>Light</string>
+    <string>Dark</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

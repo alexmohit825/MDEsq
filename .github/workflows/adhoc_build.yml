@@ -1,0 +1,109 @@
+name: MDEsq Ad-Hoc Direct IPA Pipeline (Alex's iPhone)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'MDEsq/**'
+      - 'MDEsq.xcodeproj/**'
+      - 'ExportOptions-AdHoc.plist'
+      - '.github/workflows/adhoc_build.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-export:
+    name: Compile, Sign & Export MDEsq Ad-Hoc IPA
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+          swift --version
+
+      - name: Dynamic Build Number Injection
+        run: |
+          BUILD_NUM=$(( ${{ github.run_number }} + 10 ))
+          echo "Setting build version to $BUILD_NUM"
+          xcrun agvtool new-version -all $BUILD_NUM
+          xcrun agvtool new-marketing-version "1.0.0"
+
+      - name: Configure App Store Connect API Key
+        env:
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8
+
+      - name: Compile & Export Ad-Hoc IPA for Alex's iPhone (00008150-001E7C892200401C)
+        run: |
+          mkdir -p build/archive build/output
+          xcodebuild archive \
+            -project MDEsq.xcodeproj \
+            -scheme MDEsq \
+            -destination 'generic/platform=iOS' \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/archive/MDEsq.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+          cat > build/archive_entitlements.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>application-identifier</key>
+              <string>523MJL63MC.com.dramohit.mdesq</string>
+              <key>com.apple.developer.team-identifier</key>
+              <string>523MJL63MC</string>
+          </dict>
+          </plist>
+          EOF
+
+          codesign --force --sign - --entitlements build/archive_entitlements.plist build/archive/MDEsq.xcarchive/Products/Applications/MDEsq.app
+          echo "Verifying Embedded Archive Entitlements (Anti-Leap 7 assertion):"
+          codesign -d --entitlements :- build/archive/MDEsq.xcarchive/Products/Applications/MDEsq.app
+
+          xcodebuild -exportArchive \
+            -archivePath build/archive/MDEsq.xcarchive \
+            -exportOptionsPlist ExportOptions-AdHoc.plist \
+            -exportPath build/output \
+            -allowProvisioningUpdates \
+            -authenticationKeyID 38F6WA87DU \
+            -authenticationKeyIssuerID 73c7355a-beef-4d79-919d-c3d7dec7747a \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8
+
+          ls -la build/output
+          echo "Exported MDEsq.ipa Ad-Hoc build successfully!"
+
+      - name: Upload MDEsq Ad-Hoc IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MDEsq-AdHoc-IPA
+          path: build/output/MDEsq.ipa
+          retention-days: 14
+
+      - name: Release Ad-Hoc IPA to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: success()
+        with:
+          tag_name: v1.0.0-adhoc
+          name: "MDEsq Ad-Hoc Wireless OTA v1.0.0"
+          body: "Direct 1-Tap Safari OTA binary for registered iPhone (UDID: 00008150-001E7C892200401C). Valid for 365 days with zero TestFlight footprint."
+          files: build/output/MDEsq.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

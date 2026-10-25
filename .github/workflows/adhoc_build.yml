@@ -27,12 +27,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode 16
+      - name: Select Xcode 16.0 (iOS 18 SDK)
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.app || sudo xcode-select -s /Applications/Xcode.app
+          sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
           swift --version
-          xcrun simctl list > /dev/null 2>&1 || true
 
       - name: Dynamic Build Number Injection
         run: |
@@ -46,7 +45,7 @@ jobs:
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8
+          printf "%s\n" "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8
           chmod 600 ~/.appstoreconnect/private_keys/AuthKey_38F6WA87DU.p8
 
       - name: Compile & Export Ad-Hoc IPA for Alex's iPhone (00008150-001E7C892200401C)

@@ -93,13 +93,17 @@ final class ContractAnalyzerViewModel: ObservableObject {
 
     // MARK: - Real Paragraph & Section Extraction Engine
     func analyzeContract() {
-        let trimmed = contractText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let result = Self.evaluateContract(text: contractText)
+        self.flaggedClauses = result.clauses
+        self.overallRiskScore = result.riskScore
+        self.overallGrade = result.letterGrade
+        self.hasAnalyzed = result.hasAnalyzed
+    }
+
+    static func evaluateContract(text: String) -> (clauses: [FlaggedClause], riskScore: Int, letterGrade: String, hasAnalyzed: Bool) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            flaggedClauses = []
-            overallRiskScore = 0
-            overallGrade = "A"
-            hasAnalyzed = false
-            return
+            return (clauses: [], riskScore: 0, letterGrade: "A", hasAnalyzed: false)
         }
 
         // Split contract into logical paragraphs while tracking active Section / Page headers
@@ -189,13 +193,13 @@ final class ContractAnalyzerViewModel: ObservableObject {
             }
         }
 
-        flaggedClauses = detected.sorted { $0.riskPoints > $1.riskPoints }
-        overallRiskScore = min(100, accumulatedRisk)
-        overallGrade = Self.computeLetterGrade(for: overallRiskScore)
-        hasAnalyzed = true
+        let sorted = detected.sorted { $0.riskPoints > $1.riskPoints }
+        let score = min(100, accumulatedRisk)
+        let grade = computeLetterGrade(for: score)
+        return (clauses: sorted, riskScore: score, letterGrade: grade, hasAnalyzed: true)
     }
 
-    private func extractFocusedExcerpt(from paragraph: String, matching keyword: String) -> String {
+    private static func extractFocusedExcerpt(from paragraph: String, matching keyword: String) -> String {
         guard paragraph.count > 440 else { return paragraph }
         let lower = paragraph.lowercased()
         if let range = lower.range(of: keyword.lowercased()) {

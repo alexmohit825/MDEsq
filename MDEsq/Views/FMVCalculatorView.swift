@@ -14,11 +14,11 @@ struct FMVCalculatorView: View {
     private var chartData: [PercentileBarMark] {
         let s = viewModel.selectedSpecialty
         return [
-            PercentileBarMark(label: "P25", amount: s.compP25, isOfferedPin: false),
-            PercentileBarMark(label: "P50 (Median)", amount: s.compP50, isOfferedPin: false),
+            PercentileBarMark(label: "P25", amount: Int(s.compP25), isOfferedPin: false),
+            PercentileBarMark(label: "P50 (Median)", amount: Int(s.compP50), isOfferedPin: false),
             PercentileBarMark(label: "Your Offer", amount: viewModel.totalAnnualOfferedComp, isOfferedPin: true),
-            PercentileBarMark(label: "P75", amount: s.compP75, isOfferedPin: false),
-            PercentileBarMark(label: "P90 (Stark)", amount: s.compP90, isOfferedPin: false)
+            PercentileBarMark(label: "P75", amount: Int(s.compP75), isOfferedPin: false),
+            PercentileBarMark(label: "P90 (Stark)", amount: Int(s.compP90), isOfferedPin: false)
         ]
     }
 

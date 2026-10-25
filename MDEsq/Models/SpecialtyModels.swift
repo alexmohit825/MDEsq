@@ -18,6 +18,13 @@ public struct SpecialtyBenchmark: Identifiable, Hashable {
     public let callStipendRange: String
     public let starkRiskThreshold: Double
     
+    // Computed property aliases for FMV Calculator & Stark Analysis
+    public var conversionFactorMedian: Double { convFactorP50 }
+    public var conversionFactorLow: Double { (convFactorP50 * 0.88).rounded() }
+    public var conversionFactorHigh: Double { (convFactorP50 * 1.16).rounded() }
+    public var callStipend24hMedian: Int { Int(callStipend24h) }
+    public var starkHighRiskThreshold: Int { Int(starkRiskThreshold) }
+    
     public init(
         id: String,
         name: String,
@@ -56,6 +63,7 @@ public struct SpecialtyBenchmark: Identifiable, Hashable {
 }
 
 public struct SpecialtyDatabase {
+    public static var allSpecialties: [SpecialtyBenchmark] { allBenchmarks }
     public static let allBenchmarks: [SpecialtyBenchmark] = [
         SpecialtyBenchmark(
             id: "neurosurgery-spine",

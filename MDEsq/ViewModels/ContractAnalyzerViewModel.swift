@@ -108,35 +108,44 @@ final class ContractAnalyzerViewModel: ObservableObject {
         var currentHeader = "Section 1 / Preamble"
         var currentBuffer: [String] = []
 
-        func flushBuffer() {
-            let joined = currentBuffer.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
-            if !joined.isEmpty {
-                paragraphs.append((header: currentHeader, body: joined))
-            }
-            currentBuffer.removeAll()
-        }
-
         for rawLine in rawLines {
             let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
             if line.isEmpty {
-                flushBuffer()
+                let joined = currentBuffer.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !joined.isEmpty {
+                    paragraphs.append((header: currentHeader, body: joined))
+                }
+                currentBuffer.removeAll()
                 continue
             }
             // Detect Page Marker or Section Heading
             if line.hasPrefix("[Page ") && line.hasSuffix("]") {
-                flushBuffer()
+                let joined = currentBuffer.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !joined.isEmpty {
+                    paragraphs.append((header: currentHeader, body: joined))
+                }
+                currentBuffer.removeAll()
                 currentHeader = line.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
                 continue
             }
             if line.range(of: #"^(SECTION|ARTICLE)\s+[0-9IVX]+[:\.\-\s]"#, options: [.regularExpression, .caseInsensitive]) != nil {
-                flushBuffer()
+                let joined = currentBuffer.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !joined.isEmpty {
+                    paragraphs.append((header: currentHeader, body: joined))
+                }
+                currentBuffer.removeAll()
                 currentHeader = line
                 currentBuffer.append(line)
                 continue
             }
             currentBuffer.append(line)
         }
-        flushBuffer()
+
+        let finalJoined = currentBuffer.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !finalJoined.isEmpty {
+            paragraphs.append((header: currentHeader, body: finalJoined))
+        }
+        currentBuffer.removeAll()
 
         if paragraphs.isEmpty {
             paragraphs = [(header: "Uploaded Document", body: trimmed)]

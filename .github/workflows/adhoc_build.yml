@@ -27,9 +27,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode 16.0 (iOS 18 SDK)
+      - name: Select Default Xcode (macOS 15 Runner)
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+          sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
           swift --version
 
@@ -55,12 +55,12 @@ jobs:
             -project MDEsq.xcodeproj \
             -scheme MDEsq \
             -destination 'generic/platform=iOS' \
-            -sdk iphoneos \
             -configuration Release \
             -archivePath build/archive/MDEsq.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS=NO
+            ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS=NO \
+            ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS=YES
 
           cat > build/archive_entitlements.plist << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>

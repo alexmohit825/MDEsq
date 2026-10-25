@@ -29,9 +29,10 @@ jobs:
 
       - name: Select Xcode 16
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+          sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.app || sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
           swift --version
+          xcrun simctl list > /dev/null 2>&1 || true
 
       - name: Dynamic Build Number Injection
         run: |
@@ -59,7 +60,8 @@ jobs:
             -configuration Release \
             -archivePath build/archive/MDEsq.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_REQUIRED=NO \
+            ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS=NO
 
           cat > build/archive_entitlements.plist << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>

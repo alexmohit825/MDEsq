@@ -4,24 +4,45 @@ import UIKit
 // MARK: - MDEsq Executive Legal Folio Design System
 
 public enum MDEsqTheme {
-    public static let obsidian = Color(red: 0.06, green: 0.09, blue: 0.16)       // #0F172A
+    // Executive Canvas & Surfaces
+    public static let obsidian = Color(red: 0.04, green: 0.06, blue: 0.11)       // #0A0F1D
+    public static let navyCard = Color(red: 0.07, green: 0.11, blue: 0.18)       // #131B2E
+    public static let navyElevated = Color(red: 0.10, green: 0.14, blue: 0.24)   // #1A243D
     public static let slateInk = Color(red: 0.12, green: 0.16, blue: 0.23)       // #1E293B
-    public static let parchment = Color(red: 0.97, green: 0.98, blue: 0.99)      // #F8FAFC
+    public static let slateMuted = Color(red: 0.54, green: 0.60, blue: 0.68)     // #8A99AD
+    public static let parchment = Color(red: 0.96, green: 0.95, blue: 0.91)      // #F5F2E9
+    public static let ivory = Color(red: 0.98, green: 0.97, blue: 0.94)          // #FAF8F0
     public static let warmPaper = Color(red: 0.99, green: 0.99, blue: 0.98)      // #FDFDFB
+
+    // Executive Accents
+    public static let gold = Color(red: 0.79, green: 0.66, blue: 0.30)           // #C9A84C
+    public static let goldLight = Color(red: 0.91, green: 0.84, blue: 0.58)      // #E8D595
+    public static let emerald = Color(red: 0.06, green: 0.73, blue: 0.51)        // #10B981
     public static let emeraldSeal = Color(red: 0.02, green: 0.47, blue: 0.34)    // #047857
     public static let emeraldSoft = Color(red: 0.93, green: 0.99, blue: 0.96)    // #ECFDF5
+    public static let crimson = Color(red: 0.94, green: 0.27, blue: 0.27)        // #EF4444
     public static let crimsonTrap = Color(red: 0.75, green: 0.07, blue: 0.24)    // #BE123C
     public static let crimsonSoft = Color(red: 1.00, green: 0.95, blue: 0.95)    // #FFF1F2
+    public static let amber = Color(red: 0.96, green: 0.62, blue: 0.13)          // #F59E0B
     public static let amberGold = Color(red: 0.71, green: 0.33, blue: 0.04)      // #B45309
     public static let amberSoft = Color(red: 1.00, green: 0.98, blue: 0.92)      // #FFFBEB
     public static let royalBlue = Color(red: 0.11, green: 0.31, blue: 0.85)      // #1D4ED8
     public static let royalSoft = Color(red: 0.94, green: 0.96, blue: 1.00)      // #EFF6FF
     public static let purpleJudicial = Color(red: 0.43, green: 0.16, blue: 0.85) // #6D28D9
     public static let purpleSoft = Color(red: 0.96, green: 0.95, blue: 1.00)     // #F5F3FF
-    public static let borderSubtle = Color(red: 0.89, green: 0.91, blue: 0.94)   // #E2E8F0
+    public static let borderSubtle = Color(red: 0.18, green: 0.24, blue: 0.36)   // Border
 }
 
 public enum MDEsqHaptics {
+    public static func impactLight() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+    public static func impactMedium() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+    public static func selection() {
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
     public static func light() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
@@ -43,8 +64,13 @@ public enum MDEsqHaptics {
 
 public enum PHISanitizer {
     public static func sanitize(_ rawText: String) -> String {
-        guard !rawText.isEmpty else { return "" }
+        return scrub(rawText).sanitizedText
+    }
+
+    public static func scrub(_ rawText: String) -> (sanitizedText: String, redactedCount: Int) {
+        guard !rawText.isEmpty else { return ("", 0) }
         var text = rawText
+        var count = 0
         let patterns: [(String, String)] = [
             ("\\b(MRN|mrn|ID|id|record\\s*#?)\\s*[:#]?\\s*\\d{4,12}\\b", "[MRN-REDACTED]"),
             ("\\b\\d{3}[-]?\\d{2}[-]?\\d{4}\\b", "[SSN-REDACTED]"),
@@ -56,10 +82,14 @@ public enum PHISanitizer {
         for (pattern, replacement) in patterns {
             if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
                 let range = NSRange(text.startIndex..<text.endIndex, in: text)
-                text = regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: replacement)
+                let matches = regex.matches(in: text, options: [], range: range)
+                if !matches.isEmpty {
+                    count += matches.count
+                    text = regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: replacement)
+                }
             }
         }
-        return text
+        return (text, count)
     }
 }
 
@@ -68,19 +98,22 @@ public enum PHISanitizer {
 public actor MDEsqEdgeAIClient {
     public static let shared = MDEsqEdgeAIClient()
     private let workerEndpoint = URL(string: "https://mdesq.mohalex.workers.dev/api/chat")!
-    
-    public func askCopilot(prompt: String, jurisdiction: String = "WA") async -> String {
+
+    public func askCopilot(prompt: String, systemContext: String? = nil, jurisdiction: String = "WA") async -> String {
         let sanitized = PHISanitizer.sanitize(prompt)
         var request = URLRequest(url: workerEndpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 18
-        
-        let payload: [String: String] = [
+
+        var payload: [String: String] = [
             "prompt": sanitized,
             "jurisdiction": jurisdiction
         ]
-        
+        if let ctx = systemContext {
+            payload["systemContext"] = ctx
+        }
+
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -94,179 +127,102 @@ public actor MDEsqEdgeAIClient {
         }
         return deterministicFallback(for: sanitized, jurisdiction: jurisdiction)
     }
-    
+
     private func deterministicFallback(for query: String, jurisdiction: String) -> String {
         let q = query.lowercased()
         if q.contains("tail") || q.contains("non-compete") || q.contains("contract") || q.contains("redline") {
-            return """
-            ⚖️ MDEsq Strategic Contract Analysis (\(jurisdiction) Statutory Mode):
-            • Non-Compete Parity (RCW 49.62): Geographic practice bans >18 months or covering satellite clinics are rebuttably presumed unreasonable. Strike radius bans and substitute a 12-month patient non-solicitation clause.
-            • Malpractice Tail Allocation: Demand 100% employer-funded tail coverage upon any without-cause termination, hospital breach, or after 24 months of service vesting.
-            • Emergency Call Stipends: Under Stark Law (42 U.S.C. § 1395nn), unassigned trauma/ED call exceeding 4–5 shifts/month warrants dedicated FMV per-diem stipends ($1,800–$3,000/24h).
-            """
-        } else if q.contains("peer review") || q.contains("suspension") || q.contains("npdb") || q.contains("sham") {
-            return """
-            🛡️ MDEsq Hospital Peer Review & HCQIA Defense:
-            • Cardinal Rule: NEVER voluntarily resign privileges while under investigation. Doing so triggers a permanent federal NPDB adverse action report under 45 CFR § 60.12.
-            • The 30-Day Cliff: Summary suspensions resolved or lifted within 29 days are NOT reportable to the NPDB. Demand a Fair Hearing within 14 days and challenge any economic competitors on the panel under 42 U.S.C. § 11112.
-            """
-        } else if q.contains("wmc") || q.contains("board") || q.contains("stid") || q.contains("cooperation") {
-            return """
-            🏛️ Washington Medical Commission (WMC) Defense Protocol:
-            • Certified Record Pre-Condition: Never submit a narrative response to a Letter of Cooperation before reviewing the full EMR audit trail.
-            • Non-Disciplinary STID Shield: Advocate for a Stipulation to Informal Disposition (RCW 18.130.172) or confidential Letter of Concern to protect your license from formal disciplinary findings.
-            """
+            return "STATUTORY ADVISORY (RCW 49.62 & WA Malpractice Standards):\nUnder Washington law (RCW 49.62.020), restrictive covenants exceeding 18 months are presumptively unreasonable, and agreements lacking pre-acceptance disclosure are void ab initio. For tail insurance, standard practice dictates the hospital covers 100% upon termination without cause or mutual agreement."
+        } else if q.contains("peer review") || q.contains("suspension") || q.contains("wmc") || q.contains("stid") {
+            return "STATUTORY ADVISORY (HCQIA 42 U.S.C. § 11112 & RCW 18.130.172):\nDo not submit a resignation during an active investigation—doing so triggers mandatory, permanent NPDB reporting under 45 C.F.R. § 60.12. For WMC inquiries, respond within the 14-day Letter of Cooperation window via counsel and seek a non-disciplinary Stipulation to Informal Disposition (STID) where appropriate."
+        } else {
+            return "STATUTORY ADVISORY (RCW 7.70.040 & WPI 105.08):\nIn Washington medical malpractice defense, adverse clinical outcomes do not establish breach of care. The physician's exercise of reasonable clinical judgment between accepted treatment alternatives is shielded under WPI 105.08. Document prospective decision-making contemporaneously."
         }
-        return """
-        ⚖️ MDEsq Executive Medicolegal Brief (\(jurisdiction)):
-        • Standard of Care (RCW 7.70.040): Evaluated against a reasonably prudent specialist in the same class and acting under the same or similar clinical circumstances.
-        • Informed Consent (RCW 7.70.050): Chart procedure-specific material risks, conservative non-surgical alternatives, and the risks of no treatment.
-        • Quality Assurance Privilege (RCW 70.41.200): Keep internal incident reports strictly separate from the patient's clinical medical chart.
-        """
     }
 }
 
-// MARK: - Statutory & Regulatory Models
+// MARK: - Statutory Reference Models
 
-public struct StatuteItem: Identifiable, Hashable {
+public struct LegalStatute: Identifiable, Hashable {
     public let id: String
     public let code: String
+    public let jurisdiction: String
     public let title: String
-    public let category: String
     public let summary: String
     public let keyProvisions: [String]
-    public let physicianTakeaway: String
-    
-    public init(id: String, code: String, title: String, category: String, summary: String, keyProvisions: [String], physicianTakeaway: String) {
-        self.id = id
-        self.code = code
-        self.title = title
-        self.category = category
-        self.summary = summary
-        self.keyProvisions = keyProvisions
-        self.physicianTakeaway = physicianTakeaway
-    }
-}
-
-public struct FederalRegulation: Identifiable, Hashable {
-    public let id: String
-    public let name: String
-    public let citation: String
-    public let summary: String
-    public let penalty: String
-    public let defenseSafeHarbor: String
-    
-    public init(id: String, name: String, citation: String, summary: String, penalty: String, defenseSafeHarbor: String) {
-        self.id = id
-        self.name = name
-        self.citation = citation
-        self.summary = summary
-        self.penalty = penalty
-        self.defenseSafeHarbor = defenseSafeHarbor
-    }
+    public let clinicalImpact: String
 }
 
 public struct StatutoryDatabase {
-    public static let washingtonStatutes: [StatuteItem] = [
-        StatuteItem(
-            id: "rcw-18-71",
-            code: "RCW 18.71",
-            title: "Medical Practice Act & WMC Licensing Standards",
-            category: "Licensing & Discipline",
-            summary: "Governs physician licensure, scope of surgical practice, and Washington Medical Commission (WMC) oversight.",
-            keyProvisions: [
-                "Defines licensing qualifications and mandatory reporting obligations.",
-                "Establishes confidentiality protections for physician health program participation.",
-                "Empowers WMC panels to investigate complaints, malpractice payouts, and hospital privilege actions."
-            ],
-            physicianTakeaway: "Never provide unsworn verbal or written statements to a WMC investigator without healthcare regulatory counsel."
-        ),
-        StatuteItem(
-            id: "rcw-18-130",
-            code: "RCW 18.130",
-            title: "Uniform Disciplinary Act (UDA) & STID Shield",
-            category: "Board Defense",
-            summary: "Establishes procedural due process, definitions of unprofessional conduct (RCW 18.130.180), and informal dispositions (RCW 18.130.172).",
-            keyProvisions: [
-                "RCW 18.130.172: Authorizes non-disciplinary Stipulations to Informal Disposition (STID).",
-                "RCW 18.130.230: Governs Letters of Cooperation and 21-day response timelines.",
-                "Commission bears the burden of proving charges by Clear, Cogent, and Convincing Evidence."
-            ],
-            physicianTakeaway: "Always negotiate for a confidential Letter of Concern or non-disciplinary STID without practice restrictions to avoid NPDB reporting."
-        ),
-        StatuteItem(
-            id: "rcw-7-70",
-            code: "RCW 7.70",
-            title: "Actions for Injuries Resulting from Health Care",
-            category: "Malpractice Defense",
-            summary: "Codifies Washington medical malpractice standard of care, informed consent elements, and recognized complication defenses.",
-            keyProvisions: [
-                "RCW 7.70.040: Plaintiff must prove failure to exercise the degree of care, skill, and learning expected of a reasonably prudent specialist.",
-                "RCW 7.70.050: Prudent Patient Standard for informed consent and non-surgical alternatives.",
-                "Recognized intraoperative complications do not establish a presumption of negligence."
-            ],
-            physicianTakeaway: "Contemporaneous charting of material risks, conservative alternatives, and intraoperative verification tests is your strongest shield."
-        ),
-        StatuteItem(
-            id: "rcw-49-62",
+    public static let allStatutes: [LegalStatute] = [
+        LegalStatute(
+            id: "wa-rcw-49-62",
             code: "RCW 49.62",
-            title: "Non-Competition Covenants & Physician Mobility",
-            category: "Contracts & Employment",
-            summary: "Restricts employer non-competition covenants and penalizes overbroad geographic or durational restrictions.",
+            jurisdiction: "WA",
+            title: "Washington Non-Compete Act",
+            summary: "Governs restrictive covenants in Washington State. For employees and independent contractors, strict earnings thresholds, mandatory pre-acceptance written disclosure, and maximum 18-month duration ceilings apply.",
             keyProvisions: [
-                "Presumes any post-employment non-compete exceeding 18 months to be unreasonable and void.",
-                "Protects moonlighting and supplemental clinical services unless they directly conflict with safety.",
-                "RCW 49.62.080: Employers enforcing unlawful or overbroad covenants owe mandatory $5,000+ statutory damages plus full attorney fees."
+                "RCW 49.62.020(1)(a): Must disclose all non-compete terms in writing no later than the acceptance of the offer of employment.",
+                "RCW 49.62.020(1)(b): Restrictive covenants void for employees earning below annual threshold (indexed annually by L&I; $136,593.19 in 2026).",
+                "RCW 49.62.020(1)(c): If employee is laid off or terminated without cause, covenant is void unless employer pays full base salary compensation throughout the restricted duration.",
+                "RCW 49.62.020(2): Restrictive covenants exceeding 18 months in duration are presumptively unreasonable and void.",
+                "RCW 49.62.080: Mandatory statutory damages ($5,000 or actual damages) plus reasonable attorney fees and costs awarded to physician if covenant violates the statute."
             ],
-            physicianTakeaway: "Strike 25-mile multi-facility hospital non-competes and replace with a narrow 12-month patient non-solicitation provision."
+            clinicalImpact: "Enables physicians to defeat overbroad geographic and temporal hospital non-competes. A health system attempting to enforce a non-compliant covenant faces mandatory attorney fee liability."
         ),
-        StatuteItem(
-            id: "rcw-70-41-200",
-            code: "RCW 70.41.200",
-            title: "Hospital Quality Improvement & Peer Review Privilege",
-            category: "Peer Review Shield",
-            summary: "Shields hospital quality assurance committees, M&M conferences, and peer review files from civil discovery.",
+        LegalStatute(
+            id: "wa-rcw-7-70",
+            code: "RCW 7.70",
+            jurisdiction: "WA",
+            title: "Actions for Injuries Resulting from Health Care",
+            summary: "Exclusive statutory scheme governing all medical malpractice and informed consent actions in Washington State.",
             keyProvisions: [
-                "QA committee proceedings, logs, and internal reviews are strictly immune from civil subpoena.",
-                "Privilege does not shield the patient's underlying clinical medical chart.",
-                "Referencing QA incident reports inside the clinical EMR waives statutory privilege."
+                "RCW 7.70.030: Plaintiff must establish injury resulted from failure to follow standard of care, lack of informed consent, or promise that injury would not occur.",
+                "RCW 7.70.040: Standard of care requires plaintiff to prove healthcare provider failed to exercise the degree of care, skill, and learning expected of a reasonably prudent healthcare provider in that profession acting in the same or similar circumstances.",
+                "RCW 7.70.050: Informed consent requires disclosure of material risks that a reasonably prudent person in the patient's position would attach significance to in deciding whether to submit to the treatment.",
+                "RCW 7.70.060: Written consent forms meeting statutory criteria create a rebuttable presumption of valid informed consent."
             ],
-            physicianTakeaway: "Keep clinical progress notes purely factual; never mention incident reports, risk management, or QA debates in the patient chart."
-        )
-    ]
-    
-    public static let federalRegulations: [FederalRegulation] = [
-        FederalRegulation(
-            id: "stark-law",
-            name: "Physician Self-Referral Law (Stark Law)",
-            citation: "42 U.S.C. § 1395nn / 42 CFR § 411.357",
-            summary: "Prohibits physician referrals of Medicare/Medicaid patients for Designated Health Services (DHS) to entities with a financial relationship unless structured within a statutory Safe Harbor.",
-            penalty: "Strict liability statute: denial of payment, mandatory refund of all tainted claims, civil penalties of $27,750+ per service, and False Claims Act treble damages.",
-            defenseSafeHarbor: "Bona Fide Employment & FMV Exceptions: Compensation must be set in advance, consistent with Fair Market Value (typically 25th–75th percentile), commercially reasonable even without referrals, and never tied to the volume or value of DHS referrals."
+            clinicalImpact: "Protects surgeons from outcome-based liability. Incidental complications (such as incidental durotomy during revision spine decompression) do not constitute negligence without independent standard-of-care breach."
         ),
-        FederalRegulation(
-            id: "aks",
-            name: "Federal Anti-Kickback Statute (AKS)",
-            citation: "42 U.S.C. § 1320a-7b(b)",
-            summary: "Criminal statute prohibiting the knowing and willful offer, payment, solicitation, or receipt of any remuneration to induce or reward referrals of federal healthcare program business.",
-            penalty: "Felony conviction, up to 10 years imprisonment, $100,000 criminal fine per violation, and mandatory exclusion from Medicare and Medicaid.",
-            defenseSafeHarbor: "Personal Services & ASC Safe Harbors (42 CFR § 1001.952): Written signed agreement for ≥1 year, aggregate compensation set in advance at Fair Market Value."
+        LegalStatute(
+            id: "wa-rcw-18-130",
+            code: "RCW 18.130",
+            jurisdiction: "WA",
+            title: "Uniform Disciplinary Act (UDA)",
+            summary: "Governs professional discipline, investigations, and board proceedings across all Washington health commissions, including the Washington Medical Commission (WMC).",
+            keyProvisions: [
+                "RCW 18.130.080: Initiation of complaints and case review.",
+                "RCW 18.130.172: Stipulation to Informal Disposition (STID) allows resolution without a finding of unprofessional conduct.",
+                "RCW 18.130.180(8): Failure to cooperate with an investigation constitutes unprofessional conduct.",
+                "RCW 18.130.160: Permissible sanctions upon formal finding of unprofessional conduct."
+            ],
+            clinicalImpact: "Provides statutory mechanism (STID under RCW 18.130.172) to settle board inquiries without public findings or admission of clinical misconduct."
         ),
-        FederalRegulation(
-            id: "hcqia",
-            name: "Health Care Quality Improvement Act (HCQIA)",
-            citation: "42 U.S.C. § 11101 / 45 CFR Part 60",
-            summary: "Establishes national standards for hospital professional review actions and mandates NPDB reporting for adverse privilege restrictions lasting longer than 30 days.",
-            penalty: "Hospitals acting in bad faith or violating due process lose civil immunity; physicians face permanent national NPDB reporting if suspended >30 days.",
-            defenseSafeHarbor: "Section 11112 Due Process Mandate: Physician is entitled to written notice, 30 days to request a Fair Hearing, representation by legal counsel, a verbatim court reporter record, cross-examination of witnesses, and an impartial hearing panel free of direct economic competitors."
+        LegalStatute(
+            id: "fed-hcqia",
+            code: "42 U.S.C. § 11101 et seq.",
+            jurisdiction: "Federal",
+            title: "Health Care Quality Improvement Act (HCQIA)",
+            summary: "Federal statute establishing peer review immunity, standards for fair hearings, and the National Practitioner Data Bank (NPDB).",
+            keyProvisions: [
+                "42 U.S.C. § 11112(a): Immunity requires peer review action taken in reasonable belief of furthering quality health care, after reasonable effort to obtain facts, adequate notice and hearing, and reasonable belief that action was warranted.",
+                "42 U.S.C. § 11112(b): Minimum standards for notice, right to hearing, right to counsel, right to call witnesses, and impartial tribunal.",
+                "42 U.S.C. § 11112(c): Summary suspension exception requires reasonable belief that failure to act may result in imminent danger to the health of any individual.",
+                "45 C.F.R. § 60.12: Mandatory NPDB reporting for clinical privileges actions adversely affecting privileges for more than 30 days, or resignation while under investigation."
+            ],
+            clinicalImpact: "Establishes the critical 30-day summary suspension deadline and due-process standards to defeat sham peer reviews."
         ),
-        FederalRegulation(
-            id: "emtala",
-            name: "Emergency Medical Treatment & Labor Act (EMTALA)",
-            citation: "42 U.S.C. § 1395dd",
-            summary: "Requires hospitals and on-call specialty physicians to provide medical screening examinations and stabilizing treatment regardless of insurance status.",
-            penalty: "Civil monetary penalties up to $119,942 per violation for on-call physicians and termination of Medicare provider status.",
-            defenseSafeHarbor: "Document objective clinical stability prior to any transfer, respond within bylaw-mandated on-call windows, and negotiate dedicated FMV call stipends."
+        LegalStatute(
+            id: "fed-stark-law",
+            code: "42 U.S.C. § 1395nn",
+            jurisdiction: "Federal",
+            title: "Physician Self-Referral Law (Stark Law)",
+            summary: "Prohibits physician referrals for designated health services (DHS) payable by Medicare/Medicaid to entities with which the physician has a financial relationship, unless a statutory exception applies.",
+            keyProvisions: [
+                "42 C.F.R. § 411.357(c): Bona fide employment relationships exception requiring compensation within Fair Market Value (FMV), commercially reasonable terms, and compensation not determined by volume or value of referrals.",
+                "42 C.F.R. § 411.357(p): Fair Market Value compensation exception.",
+                "Special Rule for Productivity Bonuses: wRVU productivity formulas permitted if based solely on personally performed physician services."
+            ],
+            clinicalImpact: "Governs physician salary caps, conversion factors, and compensation models. Total cash compensation above the 90th percentile triggers regulatory FMV audit risk."
         )
     ]
 }

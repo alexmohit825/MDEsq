@@ -117,8 +117,8 @@ public struct ContractDatabase {
     
     This Physician Employment Agreement ("Agreement") is entered into by and between Regional Medical Center ("Hospital") and Physician ("Employee").
     
-    1. DUTIES AND EXCLUSIVITY
-    Employee shall devote full-time professional efforts exclusively to Hospital. Employee shall not engage in any other professional medical activities, moonlighting, consulting, or expert witness work without the prior express written consent of Hospital, which may be withheld in Hospital's sole discretion.
+    1. DUTIES, EXCLUSIVITY & INTELLECTUAL PROPERTY ASSIGNMENT
+    Employee shall devote full-time professional efforts exclusively to Hospital. Employee shall not engage in any moonlighting, consulting, or expert witness work without prior written consent. Any and all inventions, surgical devices, software applications, algorithms, patents, or medical publications conceived or developed by Employee during the Term of this Agreement—whether during or outside clinical hours—shall be the sole and exclusive intellectual property of Hospital.
     
     2. COMPENSATION AND WRVU PRODUCTION CLAWBACK
     Hospital shall pay Employee a base salary of $650,000 per annum. Employee shall achieve a minimum annual threshold of 10,500 wRVUs. In the event Employee fails to achieve the annual wRVU threshold, Hospital reserves the right to retroactively adjust and claw back base compensation in subsequent quarters.
@@ -141,6 +141,9 @@ public struct ContractDatabase {
     
     8. PHYSICIAN INDEMNIFICATION OF HOSPITAL
     Employee agrees to defend, indemnify, and hold harmless Hospital, its directors, officers, and agents from any and all claims, liabilities, damages, or malpractice expenses arising out of Employee's clinical services.
+    
+    9. PATIENT NON-CONTACT & UNILATERAL CORPORATE ASSIGNMENT
+    Upon termination, Employee shall not contact or notify any patients treated at Hospital of Employee's new practice location. Hospital may freely assign or transfer this Agreement to any affiliate, private equity management entity, or successor organization without Employee's prior consent.
     """
     
     public static var rules: [ContractClauseRule] { clauseRules }
@@ -207,6 +210,21 @@ public struct ContractDatabase {
             negotiationScript: "A bilateral employment contract cannot allow one party to alter wRVU targets or call obligations through unilateral policy updates. Any change to material terms must require a mutual signed amendment, and this Agreement must control over conflicting administrative handbooks."
         ),
         ContractClauseRule(
+            id: "clause-ip-seizure",
+            title: "Unlawful Seizure of Physician Inventions, Apps & IP",
+            category: "Intellectual Property & Outside Work",
+            severity: .critical,
+            riskPoints: 20,
+            statutoryCitation: "Washington RCW 49.44.140 (Employee Inventions Act)",
+            triggerKeywords: ["inventions", "intellectual property", "software applications", "surgical devices", "patents", "expert witness", "conceived or developed"],
+            legalAnalysis: "Hospitals routinely insert dragnet IP clauses claiming 100% ownership of any medical device, mobile application, AI algorithm, or textbook you create while employed. Under Washington RCW 49.44.140(1), any employment provision requiring assignment of an invention developed on the physician's own time without hospital equipment or trade secrets is AGAINST PUBLIC POLICY AND VOID.",
+            recommendedRedline: """
+            1(b). INTELLECTUAL PROPERTY & OUTSIDE CARVE-OUT (RCW 49.44.140):
+            "Pursuant to Washington RCW 49.44.140, Hospital shall have no ownership or claim to any invention, surgical instrument, software application, algorithm, publication, or expert witness consulting developed by Physician on Physician's own time without using Hospital equipment, facilities, or trade secrets, including all items listed on Schedule A (Excluded Physician IP)."
+            """,
+            negotiationScript: "Under Washington RCW 49.44.140, employers are statutorily barred from claiming ownership of software, medical devices, or IP created on my personal time without hospital equipment. We must include the statutory RCW 49.44.140 carve-out and outside expert witness clearance."
+        ),
+        ContractClauseRule(
             id: "clause-uncompensated-call",
             title: "Uncompensated Mandatory Emergency Call",
             category: "Compensation & FMV",
@@ -250,6 +268,21 @@ public struct ContractDatabase {
             "Hospital shall pay Physician a guaranteed base salary of $650,000 per annum, which shall not be subject to downward reduction or retroactive clawback during the Initial Term. For all wRVUs personally performed in excess of 8,500 wRVUs per contract year, Hospital shall pay Physician an incentive bonus of $92.50 per wRVU, reconciled and paid within thirty (30) days after each calendar quarter."
             """,
             negotiationScript: "Surgeons cannot control hospital OR staffing, anesthesia availability, or inpatient bed closures. Base salary must be a true floor without retroactive clawbacks, while wRVU thresholds govern quarterly upside bonus distributions."
+        ),
+        ContractClauseRule(
+            id: "clause-patient-abandonment-gag",
+            title: "Patient Continuity Gag Clause & Corporate Assignment",
+            category: "Patient Ethics & M&A Protection",
+            severity: .moderate,
+            riskPoints: 12,
+            statutoryCitation: "AMA Ethics Opinion 11.2.3 & WMC Continuity of Care Rules",
+            triggerKeywords: ["shall not contact or notify any patients", "freely assign or transfer", "private equity", "without employee's prior consent", "new practice location"],
+            legalAnalysis: "Prohibiting a departing surgeon from notifying active post-operative patients of their new clinic location violates AMA medical ethics and exposes the surgeon to patient abandonment complaints. Furthermore, allowing unilateral assignment of your contract to a private equity roll-up or acquirer strips your control over who employs you.",
+            recommendedRedline: """
+            9. PATIENT CONTINUITY NOTIFICATION & ANTI-ASSIGNMENT:
+            "Upon notice of termination, Hospital and Physician shall issue a joint continuity-of-care letter to all patients treated by Physician within the preceding 24 months providing Physician's new practice contact information. This Agreement is personal to Hospital and may not be assigned to any private equity entity or third-party acquirer without Physician's prior written consent; any unconsented assignment shall automatically void all restrictive covenants."
+            """,
+            negotiationScript: "Ethical continuity of care requires notifying my active surgical panel of my new practice location upon departure, and if the practice or hospital is sold or assigned to a third party, any restrictive covenants must automatically terminate."
         )
     ]
 }

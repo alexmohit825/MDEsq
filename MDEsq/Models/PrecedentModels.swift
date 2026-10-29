@@ -127,6 +127,38 @@ struct PrecedentDatabase {
             defenseStrategy: "Move under CR 12(b)(6) to dismiss any non-RCW 7.70 claims (negligent infliction of emotional distress, battery, Consumer Protection Act claims targeting clinical judgment).",
             defensiveChartingDirective: "\"Patient signed statutory written consent pursuant to RCW 7.70.060. Explicitly discussed material risks, recognized complications, reasonable alternatives (including non-operative care), and scope for intraoperative anatomical adjustments if clinically indicated.\""
         ),
+        LegalPrecedent(
+            id: "wa-berger-2001",
+            caseName: "Berger v. Sonneland",
+            citation: "144 Wash. 2d 91, 26 P.3d 257 (2001)",
+            court: "Washington Supreme Court",
+            year: 2001,
+            jurisdiction: "WA",
+            specialty: "All Medical & Surgical Specialties",
+            category: "Unauthorized Disclosure & Informal Attorney Contact",
+            verdictOutcome: "Physician Tort Liability under RCW 7.70 Recognized",
+            holding: "A physician's unauthorized disclosure of confidential patient health information—even to a former spouse, third party, or opposing lawyer without a valid HIPAA authorization or court order—gives rise to a statutory cause of action for damages under Chapter 7.70 RCW.",
+            statutoryRef: "RCW 7.70.030(1) / RCW 70.02.020",
+            keywords: ["privacy", "hipaa", "subpoena", "disclosure", "confidentiality", "ex parte", "lawyer", "records"],
+            defenseStrategy: "Never engage in informal phone calls or ex parte discussions about a patient with third parties, family members lacking medical POA, or attorneys without a signed RCW 70.02 authorization or valid court order.",
+            defensiveChartingDirective: "\"Verified HIPAA / RCW 70.02 authorization on file prior to releasing clinical summary to designated health care surrogate [Name]. Declined informal third-party inquiry pending formal statutory authorization.\""
+        ),
+        LegalPrecedent(
+            id: "us-patrick-burget-1988",
+            caseName: "Patrick v. Burget",
+            citation: "486 U.S. 94 (1988)",
+            court: "United States Supreme Court",
+            year: 1988,
+            jurisdiction: "WA",
+            specialty: "Surgery / Hospital Privileges & Antitrust",
+            category: "Sham Peer Review & Economic Competitor Retaliation",
+            verdictOutcome: "U.S. Supreme Court Upheld Treble Antitrust Verdict for Surgeon",
+            holding: "Hospital peer review proceedings initiated and conducted in bad faith by direct economic competitors to eliminate a rival surgeon from the market are not shielded by state-action immunity and expose the conspirators to federal antitrust liability.",
+            statutoryRef: "15 U.S.C. § 1 (Sherman Act) & 42 U.S.C. § 11112",
+            keywords: ["non-compete", "peer review", "summary suspension", "privileges", "competitor", "antitrust", "retaliation", "sham", "hospital"],
+            defenseStrategy: "Document every instance where voting MEC or ad-hoc peer review committee members share your subspecialty call pool, compete for surgical referrals, or stand to gain your patient panel upon your suspension.",
+            defensiveChartingDirective: "\"Formal Administrative Objection: Placed on record that Committee Members [Names] are direct economic competitors in [Subspecialty] within the meaning of 42 U.S.C. § 11112(b)(3)(A)(iii) and Patrick v. Burget, 486 U.S. 94.\""
+        ),
 
         // OREGON CASES
         LegalPrecedent(

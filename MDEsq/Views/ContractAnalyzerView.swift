@@ -163,7 +163,7 @@ struct ContractAnalyzerView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "building.columns.fill")
-                        Text("Load 8-Clause Sample")
+                        Text("Load 9-Clause Sample")
                             .font(.footnote.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
@@ -368,7 +368,7 @@ struct ContractAnalyzerView: View {
 
     private var emptyStateBriefingCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("7-POINT STATUTORY AUDIT COVERAGE", systemImage: "checklist.checked")
+            Label("9-POINT STATUTORY AUDIT COVERAGE • PHYSICIAN DEFENSE", systemImage: "checklist.checked")
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .foregroundStyle(MDEsqTheme.gold)
 

@@ -1,6 +1,6 @@
 {
-  "app_name": "MDEsq: Physician Legal Radar",
-  "subtitle": "Contract & Malpractice Defense",
+  "app_name": "MDEsq: Physician Legal Defense",
+  "subtitle": "Contract, Peer Review & Court",
   "bundle_id": "com.dramohit.mdesq",
   "sku": "MDESQ2026",
   "primary_category": "MEDICAL",
@@ -8,10 +8,10 @@
   "default_language": "en-US",
   "pricing_tier": "Tier 2 ($1.99)",
   "copyright": "2026 A. Alex Mohit",
-  "description": "MDEsq is the premier executive medicolegal intelligence and rights defense radar engineered specifically for licensed physicians, surgeons, and healthcare executives.\n\nKey Capabilities:\n• Hospital Contract Redlining: Instant audit of restrictive covenants (RCW 49.62), malpractice tail obligations, uncompensated emergency call, and indemnity clauses with verbatim negotiation scripts.\n• Malpractice Precedent Matcher: Multi-jurisdiction caselaw finder (WA, OR, CA, NY) matching clinical complications against landmark standard of care precedents with defensive charting directives.\n• Fair Market Value (FMV) & Stark Law Calculator: National compensation benchmarks across 13 medical/surgical subspecialties with commercial reasonableness verification.\n• Sham Peer Review Diagnostic Index: 10-Factor bad-faith retaliation analyzer and 30-day HCQIA summary suspension timeline.\n• Deposition Masterclass: 8 Cardinal Deposition Rules and Reptile Theory cross-examination counter-scripts.\n• Zero-Knowledge Privacy: 100% on-device PHI scrubbing.",
-  "keywords": "md,esq,doctor,surgeon,noncompete,peer review,stark law,wrvu,deposition,hcqia,rcw 49.62,wmc,call",
+  "description": "THE ONLY MEDICOLEGAL SURVIVAL & RIGHTS DEFENSE SUITE BUILT BY A SURGEON EXCLUSIVELY FOR PHYSICIANS.\n\nEvery day, physicians and surgeons are confronted with high-stakes legal, contractual, and administrative traps—predatory hospital employment agreements, 100% malpractice tail liabilities, weaponized 'sham' peer reviews, 14-day medical board investigation letters, and 'Reptile Theory' deposition ambushes. Until now, no application existed to arm physicians with the exact statutes, appellate precedents, and verbatim legal counter-scripts needed to protect their licenses, livelihoods, and intellectual property.\n\nMDEsq bridges the gap between clinical medicine and healthcare law with an Apple Design Award-caliber Luminous Editorial Folio interface.\n\n6 PILLARS OF PHYSICIAN LEGAL DEFENSE:\n\n1. FIRST-HOUR CRISIS TRIAGE (911 PLAYBOOKS):\n• Step-by-step first-60-minute survival protocols for acute legal ambushes: Friday 4:30 PM CMO summary suspension meetings, unexpected intraoperative catastrophes (RCW 5.64.010 Apology Shield), malpractice summons service, non-party 'fact witness' deposition traps, coerced 'Fitness for Duty' referrals, and hospital seizure of physician inventions.\n\n2. HOSPITAL CONTRACT REDLINE AUDITOR (PDFKit + AI Edge):\n• Import any hospital or private-equity employment PDF to automatically flag 9 predatory clause categories: geographic non-competes (RCW 49.62), 100% tail insurance obligations, physician indemnification of the hospital, unilateral handbook amendments, uncompensated ED call, retroactive wRVU base salary clawbacks, and unlawful hospital seizure of physician inventions/apps (protected under RCW 49.44.140).\n• Generates ready-to-paste Track-Changes replacement clauses and verbal CMO negotiation scripts.\n\n3. MALPRACTICE PRECEDENT & DEFENSIVE CHARTING ENGINE:\n• Multi-jurisdiction appellate caselaw matcher (WA, OR, CA, NY & U.S. Supreme Court) linking clinical complications (dural tear, delayed stroke, retained foreign body, informed refusal, sham peer review antitrust under Patrick v. Burget) to controlling holdings (RCW 7.70.040, WPI 105.08) and copy-ready operative/EMR SmartPhrases.\n\n4. SHAM PEER REVIEW (HCQIA) & MEDICAL COMMISSION SHIELD:\n• Interactive 30-Day NPDB Summary Suspension Cliff Calculator (45 C.F.R. § 60.12), 10-Factor Sham Peer Review Detector (42 U.S.C. § 11112), and 14-Day WMC Letter of Cooperation & STID defense strategies (RCW 18.130.172).\n\n5. DEPOSITION MASTERCLASS & 5-SECOND HAPTIC METRONOME:\n• Interactive 6-scenario cross-examination simulator training physicians to defeat Reptile Theory 'Safety Rule' traps, ER 803(18) 'Authoritative Textbook' ambushes, and Epic/EMR audit-log telemetry traps, paired with a 1 Hz tactile 5-second pause cadence trainer.\n\n6. STARK LAW & FAIR MARKET VALUE (FMV) CALCULATOR:\n• Native Swift Charts percentile distribution across 13 surgical and medical subspecialties, auditing $/wRVU conversion factors, unassigned trauma/ED call stipends, and 90th-percentile Stark Law (42 U.S.C. § 1395nn) compliance.\n\nZERO-KNOWLEDGE PRIVACY:\n• 100% on-device regex PHI/PII scrubber strips MRNs, dates, and identifiers before any cloud AI query.",
+  "keywords": "md,esq,doctor,surgeon,malpractice,noncompete,deposition,wrvu,stark,hcqia,npdb,bylaws,redline,tail",
   "support_url": "https://github.com/alexmohit825/MDEsq",
-  "marketing_url": "https://github.com/alexmohit825/MDEsq",
+  "marketing_url": "https://mdesq.mohalex.workers.dev",
   "privacy_policy_url": "https://github.com/alexmohit825/MDEsq/blob/main/PRIVACY.md",
   "review_contact": {
     "first_name": "Alex",
@@ -19,5 +19,5 @@
     "email": "mohalex@gmail.com",
     "phone": "+12066795710"
   },
-  "review_notes": "MDEsq is an educational reference tool for licensed healthcare professionals. Test account not required. All core features run on-device without requiring user authentication."
+  "review_notes": "MDEsq is a first-of-its-kind physician medicolegal reference, contract redline auditor, and deposition training suite engineered specifically for licensed physicians and surgeons. No login or test account is required. All 6 modules (Contract PDF Auditor, Precedent Matcher, Peer Review/WMC Shield, Deposition Simulator, FMV Calculator, and First-Hour Crisis Triage) operate immediately on launch."
 }

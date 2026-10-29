@@ -234,6 +234,96 @@ struct DepositionDatabase {
                     critique: "Sounds like you abdicated your personal duty as the attending physician."
                 )
             ]
+        ),
+        MockDepositionScenario(
+            id: "mock-4",
+            number: 4,
+            category: "The 'Hospital Nursing Policy = Standard of Care' Trap",
+            plaintiffQuestion: "\"Doctor, Hospital Policy #402.1 states that post-laminectomy neuro checks are to be logged every 30 minutes for the first 2 hours. Because one check was logged at 48 minutes, you agree the legal standard of care was breached, correct?\"",
+            trapAnalysis: "Plaintiff's counsel tries to convert an internal administrative nursing guideline into the statutory physician standard of care under RCW 7.70.040.",
+            options: [
+                MockDepositionOption(
+                    id: "m4-a",
+                    label: "\"Yes, hospital policies are the rules we have to follow, so missing the 30-minute mark is a breach.\"",
+                    grade: "F",
+                    isBest: false,
+                    critique: "Fatal legal concession. You just elevated an internal hospital nursing goal into strict malpractice liability."
+                ),
+                MockDepositionOption(
+                    id: "m4-b",
+                    label: "\"Internal hospital administrative policies are aspirational operational guidelines for nursing staff—they do not define the legal standard of care for a physician under Washington law. Clinically, the patient's neurological examination remained stable and 5/5 throughout recovery.\"",
+                    grade: "A+",
+                    isBest: true,
+                    critique: "Masterclass response. Separates internal administrative bylaws/policies from the statutory standard of care (RCW 7.70.040) and pivots to lack of proximate causation."
+                ),
+                MockDepositionOption(
+                    id: "m4-c",
+                    label: "\"That's a nursing failure, not my fault—you should ask the PACU nurse why she was 18 minutes late.\"",
+                    grade: "D",
+                    isBest: false,
+                    critique: "Finger-pointing at hospital nurses alienates the jury and invites hospital co-defendant cross-claims against you."
+                )
+            ]
+        ),
+        MockDepositionScenario(
+            id: "mock-5",
+            number: 5,
+            category: "The 'EMR Audit Log / 42-Second MRI Review' Telemetry Trap",
+            plaintiffQuestion: "\"Doctor, we subpoenaed the Epic & PACS access audit trail. It shows you opened the lumbar MRI on your clinic computer for only 44 seconds before signing your note. You rushed through this patient's scan, didn't you?\"",
+            trapAnalysis: "Modern plaintiff attorneys subpoena raw EMR clickstream logs and mischaracterize a quick note-signing refresh as your only review of the imaging.",
+            options: [
+                MockDepositionOption(
+                    id: "m5-a",
+                    label: "\"I can read a spine MRI in 44 seconds; I've looked at ten thousand of them.\"",
+                    grade: "D-",
+                    isBest: false,
+                    critique: "Sounds dismissive and arrogant to a lay jury when a patient suffered a severe complication."
+                ),
+                MockDepositionOption(
+                    id: "m5-b",
+                    label: "\"An EMR login timestamp on a single terminal does not capture the totality of my imaging review. Prior to and during the encounter, I reviewed the multi-planar sagittal and axial sequences on the PACS workstation, correlated them directly with the patient's dermatomal exam, and reviewed the key slices again at the bedside with the patient.\"",
+                    grade: "A+",
+                    isBest: true,
+                    critique: "Masterclass response. Exposes the technical artificiality of single-terminal EMR audit logs and anchors your care in thorough clinical correlation."
+                ),
+                MockDepositionOption(
+                    id: "m5-c",
+                    label: "\"The Epic computer clock must be broken or inaccurate.\"",
+                    grade: "F",
+                    isBest: false,
+                    critique: "Easily disproven by IT testimony and destroys your credibility on all other electronic records."
+                )
+            ]
+        ),
+        MockDepositionScenario(
+            id: "mock-6",
+            number: 6,
+            category: "The 'Captain of the Ship / Vicarious Liability' Trap",
+            plaintiffQuestion: "\"Doctor, as the lead attending surgeon in Operating Room 4, you are the 'Captain of the Ship' and personally responsible for every action taken by the anesthesiologist and circulating staff in that room, aren't you?\"",
+            trapAnalysis: "Tries to trick your ego into accepting personal legal liability for independent specialists (anesthesia) or hospital employees.",
+            options: [
+                MockDepositionOption(
+                    id: "m6-a",
+                    label: "\"Yes, it's my operating room and the buck stops with me.\"",
+                    grade: "F",
+                    isBest: false,
+                    critique: "Your chivalry just made you personally liable for an anesthesia airway or medication error you didn't commit."
+                ),
+                MockDepositionOption(
+                    id: "m6-b",
+                    label: "\"Modern surgery is performed by distinct, specialized professionals. As the attending neurosurgeon, I direct and am responsible for the neurosurgical procedure at the operative field, while the board-certified anesthesiologist independently manages anesthesia and hemodynamic monitoring within their distinct specialty.\"",
+                    grade: "A+",
+                    isBest: true,
+                    critique: "Masterclass response. Respectfully delineates legal and clinical scopes of practice under Washington law (Kemalyan v. Henderson)."
+                ),
+                MockDepositionOption(
+                    id: "m6-c",
+                    label: "\"I have zero control over anyone else in the operating room.\"",
+                    grade: "C-",
+                    isBest: false,
+                    critique: "Overstates the point and can be impeached if you gave intraoperative positioning or antibiotic directives."
+                )
+            ]
         )
     ]
 }
